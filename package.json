@@ -9,7 +9,7 @@
     "contracts"
   ],
   "scripts": {
-    "compile": "hardhat compile && hardhat compile --config hardhat.config.zksync.ts",
+    "compile": "hardhat compile",
     "test": "hardhat test",
     "test:integration": "hardhat test tests/integration/index.ts",
     "test:fork": "hardhat test tests/hardhat/Fork/*",
@@ -22,12 +22,16 @@
     "lint:ts:fix": "eslint --fix --ext .js,.ts .",
     "prettier": "prettier --write \"**/*.{js,json,md,sol,ts,yaml,yml}\"",
     "prettier:check": "prettier --check \"**/*.{js,json,md,sol,ts,yaml,yml}\"",
-    "build": "rm -rf dist && hardhat compile && hardhat compile --config hardhat.config.zksync.ts && tsc --declaration",
+    "build": "rm -rf dist && hardhat compile && tsc --declaration",
     "clean": "hardhat clean && hardhat clean --config hardhat.config.zksync.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0",
+    "yarn": ">=1.22.0"
+  },
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@openzeppelin/contracts": "^4.8.3",
@@ -63,7 +67,6 @@
     "@typescript-eslint/eslint-plugin": "^5.27.1",
     "@typescript-eslint/parser": "^5.27.1",
     "@venusprotocol/governance-contracts": "2.12.0",
-    "@venusprotocol/oracle": "2.11.0",
     "@venusprotocol/protocol-reserve": "3.3.0",
     "@venusprotocol/venus-protocol": "9.7.0",
     "bignumber.js": "9.0.0",
@@ -91,5 +94,8 @@
     "typechain": "^5.2.0",
     "typescript": "^4.6.3",
     "zksync-ethers": "^5.9.1"
-  }
+  },
+  "main": "index.js",
+  "repository": "git@github.com:VenusProtocol/ERC4626.git",
+  "packageManager": "yarn@4.9.1"
 }
