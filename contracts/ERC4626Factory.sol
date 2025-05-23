@@ -86,7 +86,8 @@ contract ERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
         address coreImplementation,
         address poolRegistry_,
         address coreComptroller_,
-        address rewardRecipient_
+        address rewardRecipient_,
+        uint256 loopsLimitNumber
     ) external initializer {
         ensureNonzeroAddress(isolatedImplementation);
         ensureNonzeroAddress(coreImplementation);
@@ -95,9 +96,10 @@ contract ERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
         ensureNonzeroAddress(rewardRecipient_);
 
         __AccessControlled_init(accessControlManager);
+        _setMaxLoopsLimit(loopsLimitNumber);
 
-        isolatedBeacon = new UpgradeableBeacon(isolatedImplementation, owner());
-        coreBeacon = new UpgradeableBeacon(coreImplementation, owner());
+        isolatedBeacon = new UpgradeableBeacon(isolatedImplementation);
+        coreBeacon = new UpgradeableBeacon(coreImplementation);
 
         poolRegistry = PoolRegistryInterface(poolRegistry_);
         coreComptroller = ComptrollerInterface(coreComptroller_);
@@ -150,7 +152,7 @@ contract ERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
                 revert InvalidVToken();
             }
 
-            // vault = _deployIsolatedVault(vToken);
+            vault = _deployIsolatedVault(vToken);
         }
 
         vaults[vToken] = vault;
@@ -200,7 +202,7 @@ contract ERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
                 )
             )
         );
-        vault.initialize2(address(_accessControlManager), rewardRecipient, 10_000, owner());
+        vault.initialize2(address(_accessControlManager), rewardRecipient, 100, owner());
         return ERC4626Upgradeable(address(vault));
     }
 
@@ -217,8 +219,7 @@ contract ERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
             )
         );
 
-        address accessControlManager = address(this.accessControlManager());
-        vault.initialize2(address(accessControlManager), rewardRecipient, owner());
+        vault.initialize2(address(_accessControlManager), rewardRecipient, owner());
         return ERC4626Upgradeable(address(vault));
     }
 }
