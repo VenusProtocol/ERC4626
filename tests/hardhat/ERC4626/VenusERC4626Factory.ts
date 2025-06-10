@@ -5,15 +5,17 @@ import { ethers, upgrades } from "hardhat";
 import { SignerWithAddress } from "hardhat-deploy-ethers/signers";
 
 import {
-  AccessControlManager,
+  ComptrollerInterface,
+  VToken as CoreVToken,
   ERC20,
-  IComptroller,
+  VenusERC4626Factory,
+  IAccessControlManagerV8,
+  VToken as IsolatedVToken,
   PoolRegistryInterface,
   UpgradeableBeacon,
-  VToken,
-  VenusERC4626,
-  VenusERC4626Factory,
-} from "../../../typechain";
+  VenusERC4626Core,
+  VenusERC4626Isolated,
+} from "../../typechain";
 
 const { expect } = chai;
 chai.use(smock.matchers);
@@ -22,177 +24,158 @@ describe("VenusERC4626Factory", () => {
   let deployer: SignerWithAddress;
   let user: SignerWithAddress;
   let factory: VenusERC4626Factory;
-  let beacon: UpgradeableBeacon;
-  let listedAsset: FakeContract<ERC20>;
-  let vTokenA: FakeContract<VToken>;
-  let vTokenB: FakeContract<VToken>;
-  let fakeVToken: FakeContract<VToken>;
-  let unlistedVToken: FakeContract<VToken>;
-  let comptroller: FakeContract<IComptroller>;
+  let isolatedBeacon: UpgradeableBeacon;
+  let coreBeacon: UpgradeableBeacon;
+  let asset1: FakeContract<ERC20>;
+  let asset2: FakeContract<ERC20>;
+  let coreVToken: FakeContract<CoreVToken>;
+  let isolatedVToken: FakeContract<IsolatedVToken>;
+  let invalidVToken: FakeContract<CoreVToken>;
+  let coreComptroller: FakeContract<ComptrollerInterface>;
   let poolRegistry: FakeContract<PoolRegistryInterface>;
-  let accessControlManager: FakeContract<AccessControlManager>;
+  let accessControl: FakeContract<IAccessControlManagerV8>;
   let rewardRecipient: string;
-  let venusERC4626Impl: VenusERC4626;
+  let venusERC4626CoreImpl: VenusERC4626Core;
+  let venusERC4626IsolatedImpl: VenusERC4626Isolated;
 
   beforeEach(async () => {
     [deployer, user] = await ethers.getSigners();
 
-    listedAsset = await smock.fake("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
-    vTokenA = await smock.fake("VToken");
-    vTokenB = await smock.fake("VToken");
-    fakeVToken = await smock.fake("VToken");
-    unlistedVToken = await smock.fake("VToken");
-    comptroller = await smock.fake("@venusprotocol/isolated-pools/contracts/Comptroller.sol:Comptroller");
-    poolRegistry = await smock.fake("@venusprotocol/isolated-pools/contracts/Pool/PoolRegistryInterface.sol:PoolRegistryInterface");
-    accessControlManager = await smock.fake("AccessControlManager");
+    // Setup fake contracts
+    asset1 = await smock.fake("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
+    asset2 = await smock.fake("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
+    coreVToken = await smock.fake("VToken");
+    isolatedVToken = await smock.fake("VToken");
+    invalidVToken = await smock.fake("VToken");
+    accessControl = await smock.fake("IAccessControlManagerV8");
     rewardRecipient = deployer.address;
 
-    accessControlManager.isAllowedToCall.returns(true);
-    comptroller.poolRegistry.returns(poolRegistry.address);
+    // Setup core pool
+    coreComptroller = await smock.fake<ComptrollerInterface>(
+      "contracts/interfaces/ComptrollerInterface.sol:ComptrollerInterface",
+    );
+    coreVToken.comptroller.returns(coreComptroller.address);
+    coreVToken.underlying.returns(asset1.address);
+    coreComptroller.markets.whenCalledWith(coreVToken.address).returns([true, 0]);
 
-    vTokenA.comptroller.returns(comptroller.address);
-    vTokenA.underlying.returns(listedAsset.address);
+    // Setup isolated pool
+    poolRegistry = await smock.fake<PoolRegistryInterface>("PoolRegistryInterface");
+    isolatedVToken.comptroller.returns(ethers.Wallet.createRandom().address);
+    isolatedVToken.underlying.returns(asset2.address);
+    poolRegistry.getVTokenForAsset.returns(isolatedVToken.address);
 
-    const otherAsset = await smock.fake("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
-    vTokenB.comptroller.returns(comptroller.address);
-    vTokenB.underlying.returns(otherAsset.address);
+    // Setup invalid vToken
+    invalidVToken.comptroller.returns(constants.AddressZero);
 
-    fakeVToken.comptroller.returns(constants.AddressZero);
-    unlistedVToken.comptroller.returns(comptroller.address);
-    unlistedVToken.underlying.returns(ethers.Wallet.createRandom().address); // Random underlying
+    // Deploy implementations
+    const VenusERC4626Core = await ethers.getContractFactory("VenusERC4626Core");
+    venusERC4626CoreImpl = await VenusERC4626Core.deploy();
 
-    vTokenB.comptroller.returns(comptroller.address);
+    const VenusERC4626Isolated = await ethers.getContractFactory("VenusERC4626Isolated");
+    venusERC4626IsolatedImpl = await VenusERC4626Isolated.deploy();
 
-    poolRegistry.getPoolByComptroller.whenCalledWith(comptroller.address).returns({
-      name: "Test Pool",
-      creator: deployer.address,
-      comptroller: comptroller.address,
-      blockPosted: 123456,
-      timestampPosted: Math.floor(Date.now() / 1000),
-    });
-
-    poolRegistry.getPoolByComptroller.whenCalledWith(constants.AddressZero).returns({
-      name: "",
-      creator: constants.AddressZero,
-      comptroller: constants.AddressZero,
-      blockPosted: 0,
-      timestampPosted: 0,
-    });
-
-    poolRegistry.getVTokenForAsset.whenCalledWith(comptroller.address, listedAsset.address).returns(vTokenA.address);
-
-    poolRegistry.getVTokenForAsset.whenCalledWith(comptroller.address, otherAsset.address).returns(vTokenB.address);
-
-    const VenusERC4626 = await ethers.getContractFactory("VenusERC4626");
-    venusERC4626Impl = await VenusERC4626.deploy();
-    await venusERC4626Impl.deployed();
-
+    // Deploy factory
     const Factory = await ethers.getContractFactory("VenusERC4626Factory");
     factory = await upgrades.deployProxy(
       Factory,
-      [accessControlManager.address, poolRegistry.address, rewardRecipient, venusERC4626Impl.address, 10],
+      [
+        accessControl.address,
+        venusERC4626IsolatedImpl.address,
+        venusERC4626CoreImpl.address,
+        poolRegistry.address,
+        coreComptroller.address,
+        rewardRecipient,
+        100,
+      ],
       { initializer: "initialize" },
     );
 
-    beacon = await ethers.getContractAt("UpgradeableBeacon", await factory.beacon());
+    isolatedBeacon = await ethers.getContractAt("UpgradeableBeacon", await factory.isolatedBeacon());
+    coreBeacon = await ethers.getContractAt("UpgradeableBeacon", await factory.coreBeacon());
   });
 
   describe("Initialization", () => {
     it("should set correct initial values", async () => {
+      expect(await factory.accessControlManager()).to.equal(accessControl.address);
       expect(await factory.poolRegistry()).to.equal(poolRegistry.address);
+      expect(await factory.coreComptroller()).to.equal(coreComptroller.address);
       expect(await factory.rewardRecipient()).to.equal(rewardRecipient);
-      expect(await factory.maxLoopsLimit()).to.equal(10);
     });
 
-    it("should setup beacon proxy correctly", async () => {
-      expect(await beacon.implementation()).to.equal(venusERC4626Impl.address);
+    it("should setup beacons correctly", async () => {
+      expect(await isolatedBeacon.implementation()).to.equal(venusERC4626IsolatedImpl.address);
+      expect(await coreBeacon.implementation()).to.equal(venusERC4626CoreImpl.address);
     });
 
-    it("should set the owner of the beacon to the owner of the factory", async () => {
-      expect(await beacon.owner()).to.equal(await factory.owner());
+    it("should set beacon owners to factory owner", async () => {
+      expect(await isolatedBeacon.owner()).to.equal(await factory.owner());
+      expect(await coreBeacon.owner()).to.equal(await factory.owner());
     });
   });
 
   describe("Vault Creation", () => {
-    it("should create vault and emit event", async () => {
-      const tx = await factory.createERC4626(vTokenA.address);
+    it("should create core vault and emit event", async () => {
+      const tx = await factory.createERC4626(coreVToken.address, true);
       const receipt = await tx.wait();
-      const event = receipt.events?.find(e => e.event === "CreateERC4626");
+      const event = receipt.events?.find(e => e.event === "VaultCreated");
 
-      expect(event?.args?.vToken).to.equal(vTokenA.address);
-      expect(event?.args?.vault).to.not.equal(constants.AddressZero);
+      expect(event?.args?.vToken).to.equal(coreVToken.address);
+      expect(event?.args?.isCore).to.be.true;
     });
 
-    it("should set the owner of the vault", async () => {
-      const tx = await factory.createERC4626(vTokenA.address);
+    it("should create isolated vault and emit event", async () => {
+      const tx = await factory.createERC4626(isolatedVToken.address, false);
       const receipt = await tx.wait();
-      const deployed = receipt.events?.find(e => e.event === "CreateERC4626")?.args?.vault;
+      const event = receipt.events?.find(e => e.event === "VaultCreated");
 
-      const venusERC4626 = await ethers.getContractAt("VenusERC4626", deployed);
-
-      expect(await venusERC4626.owner()).to.equal(await factory.owner());
+      expect(event?.args?.vToken).to.equal(isolatedVToken.address);
+      expect(event?.args?.isCore).to.be.false;
     });
 
-    it("should revert for zero vToken address", async () => {
-      await expect(factory.createERC4626(constants.AddressZero)).to.be.revertedWithCustomError(
+    it("should revert for invalid core vToken", async () => {
+      coreComptroller.markets.whenCalledWith(invalidVToken.address).returns([false, 0]);
+      await expect(factory.createERC4626(invalidVToken.address, true)).to.be.revertedWithCustomError(
         factory,
-        "ZeroAddressNotAllowed",
+        "InvalidVToken",
       );
     });
 
-    it("should revert for unlisted vToken", async () => {
-      await expect(factory.createERC4626(unlistedVToken.address)).to.be.revertedWithCustomError(
+    it("should revert for invalid isolated vToken", async () => {
+      poolRegistry.getVTokenForAsset.returns(constants.AddressZero);
+      await expect(factory.createERC4626(invalidVToken.address, false)).to.be.revertedWithCustomError(
         factory,
-        "VenusERC4626Factory__InvalidVToken",
+        "InvalidVToken",
+      );
+    });
+
+    it("should revert for duplicate vToken", async () => {
+      await factory.createERC4626(coreVToken.address, true);
+      await expect(factory.createERC4626(coreVToken.address, true)).to.be.revertedWithCustomError(
+        factory,
+        "VaultAlreadyExists",
       );
     });
   });
 
   describe("CREATE2 Functionality", () => {
-    it("should deploy to predicted address", async () => {
-      const predicted = await factory.computeVaultAddress(vTokenA.address);
-      const tx = await factory.createERC4626(vTokenA.address);
-      const receipt = await tx.wait();
-      const deployed = receipt.events?.find(e => e.event === "CreateERC4626")?.args?.vault;
-
+    it("should deploy core vault to predicted address", async () => {
+      const predicted = await factory.computeVaultAddress(coreVToken.address, true);
+      const tx = await factory.createERC4626(coreVToken.address, true);
+      const deployed = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
       expect(deployed).to.equal(predicted);
     });
 
-    it("should revert for deployment of same vToken", async () => {
-      await factory.createERC4626(vTokenA.address);
-      await expect(factory.createERC4626(vTokenA.address)).to.be.revertedWithCustomError(
-        factory,
-        "VenusERC4626Factory__ERC4626AlreadyExists",
-      );
-    });
-
-    it("should revert for deployment of same vToken after updating reward recipient", async () => {
-      const newRecipient = ethers.Wallet.createRandom().address;
-
-      await factory.createERC4626(vTokenA.address);
-      await factory.setRewardRecipient(newRecipient);
-
-      await expect(factory.createERC4626(vTokenA.address)).to.be.reverted;
-    });
-
-    it("should revert for deployment of same vToken after updating max loop limit", async () => {
-      const maxLoopsLimit = await factory.maxLoopsLimit();
-      const newMaxLoopLimit = maxLoopsLimit.add(10);
-
-      await factory.createERC4626(vTokenA.address);
-      await factory.setMaxLoopsLimit(newMaxLoopLimit);
-
-      await expect(factory.createERC4626(vTokenA.address)).to.be.reverted;
-    });
-
-    it("Should not revert for deployment of different vTokens", async () => {
-      await factory.createERC4626(vTokenA.address);
-      await expect(factory.createERC4626(vTokenB.address));
+    it("should deploy isolated vault to predicted address", async () => {
+      const predicted = await factory.computeVaultAddress(isolatedVToken.address, false);
+      const tx = await factory.createERC4626(isolatedVToken.address, false);
+      const deployed = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
+      expect(deployed).to.equal(predicted);
     });
   });
 
   describe("Access Control", () => {
-    it("should allow authorized accounts to update reward recipient", async () => {
+    it("should allow ACM-authorized calls to setRewardRecipient", async () => {
+      accessControl.isAllowedToCall.returns(true);
       const newRecipient = ethers.Wallet.createRandom().address;
       await expect(factory.setRewardRecipient(newRecipient))
         .to.emit(factory, "RewardRecipientUpdated")
@@ -200,6 +183,7 @@ describe("VenusERC4626Factory", () => {
     });
 
     it("should allow authorized accounts to update maxLoopsLimit", async () => {
+      accessControl.isAllowedToCall.returns(true);
       const maxLoopsLimit = await factory.maxLoopsLimit();
       const newMaxLoopLimit = maxLoopsLimit.add(10);
       await expect(factory.setMaxLoopsLimit(newMaxLoopLimit))
@@ -207,8 +191,8 @@ describe("VenusERC4626Factory", () => {
         .withArgs(maxLoopsLimit, newMaxLoopLimit);
     });
 
-    it("should revert when unauthorized user tries to update", async () => {
-      accessControlManager.isAllowedToCall.returns(false);
+    it("should revert unauthorized setRewardRecipient calls", async () => {
+      accessControl.isAllowedToCall.returns(false);
       await expect(factory.connect(user).setRewardRecipient(user.address)).to.be.revertedWithCustomError(
         factory,
         "Unauthorized",
@@ -216,21 +200,50 @@ describe("VenusERC4626Factory", () => {
     });
   });
 
-  describe("Beacon Proxy Verification", () => {
-    it("should deploy valid BeaconProxy", async () => {
-      // Deploy the vault
-      const tx = await factory.createERC4626(vTokenA.address);
-      const receipt = await tx.wait();
-      const vaultAddress = receipt.events?.find(e => e.event === "CreateERC4626")?.args?.vault;
+  describe("Beacon Verification", () => {
+    it("should use correct beacon for core vault", async () => {
+      const tx = await factory.createERC4626(coreVToken.address, true);
+      const vaultAddress = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
 
-      // Verify proxy storage slot (EIP-1967)
-      const beaconSlot = ethers.BigNumber.from(
-        ethers.utils.keccak256(ethers.utils.toUtf8Bytes("eip1967.proxy.beacon")),
-      ).sub(1);
+      const beaconSlot = ethers.utils.hexlify(
+        ethers.BigNumber.from(ethers.utils.keccak256(ethers.utils.toUtf8Bytes("eip1967.proxy.beacon"))).sub(1),
+      );
+
       const beaconAddress = await ethers.provider.getStorageAt(vaultAddress, beaconSlot);
+      expect(ethers.utils.getAddress("0x" + beaconAddress.slice(-40))).to.equal(coreBeacon.address);
+    });
 
-      // Storage returns 32 bytes, last 20 bytes are the address
-      expect(ethers.utils.getAddress("0x" + beaconAddress.slice(-40))).to.equal(await factory.beacon());
+    it("should use correct beacon for isolated vault", async () => {
+      const tx = await factory.createERC4626(isolatedVToken.address, false);
+      const vaultAddress = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
+
+      const beaconSlot = ethers.utils.hexlify(
+        ethers.BigNumber.from(ethers.utils.keccak256(ethers.utils.toUtf8Bytes("eip1967.proxy.beacon"))).sub(1),
+      );
+
+      const beaconAddress = await ethers.provider.getStorageAt(vaultAddress, beaconSlot);
+      expect(ethers.utils.getAddress("0x" + beaconAddress.slice(-40))).to.equal(isolatedBeacon.address);
+    });
+  });
+
+  describe("Vault Initialization", () => {
+    it("should initialize core vault with correct parameters", async () => {
+      const tx = await factory.createERC4626(coreVToken.address, true);
+      const vaultAddress = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
+      const vault = await ethers.getContractAt("VenusERC4626Core", vaultAddress);
+
+      expect(await vault.owner()).to.equal(await factory.owner());
+      expect(await vault.rewardRecipient()).to.equal(rewardRecipient);
+    });
+
+    it("should initialize isolated vault with correct parameters", async () => {
+      const tx = await factory.createERC4626(isolatedVToken.address, false);
+      const vaultAddress = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
+      const vault = await ethers.getContractAt("VenusERC4626Isolated", vaultAddress);
+
+      expect(await vault.owner()).to.equal(await factory.owner());
+      expect(await vault.rewardRecipient()).to.equal(rewardRecipient);
+      expect(await vault.maxLoopsLimit()).to.equal(await factory.maxLoopsLimit());
     });
   });
 });
