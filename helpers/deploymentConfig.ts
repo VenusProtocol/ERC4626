@@ -21,6 +21,7 @@ import { contracts as venusProtocolSepolia } from "@venusprotocol/venus-protocol
 import { contracts as venusProtocolZkSyncMainnet } from "@venusprotocol/venus-protocol/deployments/zksyncmainnet.json";
 import { contracts as venusProtocolZkSyncSepolia } from "@venusprotocol/venus-protocol/deployments/zksyncsepolia.json";
 import { BigNumber } from "ethers";
+import { Wallet } from "ethers";
 import { ethers } from "hardhat";
 import { DeploymentsExtension } from "hardhat-deploy/types";
 
@@ -208,6 +209,9 @@ const REDUCE_RESERVES_BLOCK_DELTA_BERA_CHAIN_BARTIO = "86400";
 export const preconfiguredAddresses = {
   hardhat: {
     VTreasury: "account:deployer",
+    AccessControlManager: Wallet.createRandom().address,
+    PoolRegistry: Wallet.createRandom().address,
+    CoreComptroller: Wallet.createRandom().address,
   },
   bsctestnet: {
     VTreasury: venusProtocolBscTestnet.VTreasury.address,
