@@ -1,10 +1,7 @@
-import { deployments, ethers, getNamedAccounts } from "hardhat";
+import { deployments, getNamedAccounts } from "hardhat";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-import {
-  DeploymentInfo,
-  blocksPerYear,
-} from "./deploymentConfig";
+import { DeploymentInfo, blocksPerYear } from "./deploymentConfig";
 
 export const toAddress = async (addressOrAlias: string): Promise<string> => {
   if (addressOrAlias.startsWith("0x")) {
