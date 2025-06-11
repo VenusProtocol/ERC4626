@@ -18,7 +18,7 @@ interface IComptroller {
 
     function supplyCaps(address) external view returns (uint256);
 
-    function markets(address) external view returns (bool, uint);
+    function markets(address) external view returns (bool, uint256);
 
     function getXVSAddress() external view returns (address);
 }
