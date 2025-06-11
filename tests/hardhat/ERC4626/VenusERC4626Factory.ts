@@ -5,15 +5,15 @@ import { ethers, upgrades } from "hardhat";
 import { SignerWithAddress } from "hardhat-deploy-ethers/signers";
 
 import {
-  IComptroller,
   VToken as CoreVToken,
   ERC20,
-  VenusERC4626Factory,
   IAccessControlManagerV8,
+  IComptroller,
   VToken as IsolatedVToken,
   PoolRegistryInterface,
   UpgradeableBeacon,
   VenusERC4626Core,
+  VenusERC4626Factory,
   VenusERC4626Isolated,
 } from "../../typechain";
 
@@ -51,9 +51,7 @@ describe("VenusERC4626Factory", () => {
     rewardRecipient = deployer.address;
 
     // Setup core pool
-    coreComptroller = await smock.fake<IComptroller>(
-      "contracts/ERC4626/Interfaces/IComptroller.sol:IComptroller",
-    );
+    coreComptroller = await smock.fake<IComptroller>("contracts/ERC4626/Interfaces/IComptroller.sol:IComptroller");
     coreVToken.comptroller.returns(coreComptroller.address);
     coreVToken.underlying.returns(asset1.address);
     coreComptroller.markets.whenCalledWith(coreVToken.address).returns([true, 0]);

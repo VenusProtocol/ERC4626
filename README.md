@@ -3,6 +3,7 @@
 Venus Protocol introduces native ERC-4626 vaults, bringing standardized, composable yield vaults to the Venus ecosystem. This integration represents a significant advancement in making Venus's yield-bearing markets more accessible and composable within the broader DeFi ecosystem.
 
 ## Understanding ERC-4626
+
 ERC-4626 is a tokenized vault standard designed to unify how yield-bearing assets are deposited, managed, and withdrawn in DeFi protocols. It builds on the ERC-20 token standard and introduces a consistent interface for vaults that accept a specific asset (like USDC) and issue shares representing ownership in the vault.
 
 The primary goal of ERC-4626 is standardization—allowing developers to integrate with vaults without needing to understand their internal mechanics. Functions like deposit, withdraw, mint, and redeem, follow predictable behaviors across all compliant contracts.

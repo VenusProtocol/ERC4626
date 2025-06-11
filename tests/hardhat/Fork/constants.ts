@@ -6,6 +6,14 @@ import GovernanceEthMainnet from "@venusprotocol/governance-contracts/deployment
 import GovernanceOpBnbMainnet from "@venusprotocol/governance-contracts/deployments/opbnbmainnet.json";
 import GovernanceOpBnbTestnet from "@venusprotocol/governance-contracts/deployments/opbnbtestnet.json";
 import GovernanceSepTestnet from "@venusprotocol/governance-contracts/deployments/sepolia.json";
+import { contracts as ArbOneContracts } from "@venusprotocol/isolated-pools/deployments/arbitrumone.json";
+import { contracts as ArbSepContracts } from "@venusprotocol/isolated-pools/deployments/arbitrumsepolia.json";
+import { contracts as MainnetContracts } from "@venusprotocol/isolated-pools/deployments/bscmainnet.json";
+import { contracts as TestnetContracts } from "@venusprotocol/isolated-pools/deployments/bsctestnet.json";
+import { contracts as EthereumContracts } from "@venusprotocol/isolated-pools/deployments/ethereum.json";
+import { contracts as OpBnbMainnetContracts } from "@venusprotocol/isolated-pools/deployments/opbnbmainnet.json";
+import { contracts as OpBnbTestnetContracts } from "@venusprotocol/isolated-pools/deployments/opbnbtestnet.json";
+import { contracts as SepoliaContracts } from "@venusprotocol/isolated-pools/deployments/sepolia.json";
 import OracleArbOne from "@venusprotocol/oracle/deployments/arbitrumone.json";
 import OracleArbSep from "@venusprotocol/oracle/deployments/arbitrumsepolia.json";
 import OracleBscMainnet from "@venusprotocol/oracle/deployments/bscmainnet.json";
@@ -21,15 +29,6 @@ import PsrBscTestnet from "@venusprotocol/protocol-reserve/deployments/bsctestne
 import PsrEthereum from "@venusprotocol/protocol-reserve/deployments/ethereum.json";
 import PsrOpBnbTestnet from "@venusprotocol/protocol-reserve/deployments/opbnbtestnet/ProtocolShareReserve.json";
 import PsrSepTestnet from "@venusprotocol/protocol-reserve/deployments/sepolia.json";
-
-import { contracts as ArbOneContracts } from "@venusprotocol/isolated-pools/deployments/arbitrumone.json";
-import { contracts as ArbSepContracts } from "@venusprotocol/isolated-pools/deployments/arbitrumsepolia.json";
-import { contracts as MainnetContracts } from "@venusprotocol/isolated-pools/deployments/bscmainnet.json";
-import { contracts as TestnetContracts } from "@venusprotocol/isolated-pools/deployments/bsctestnet.json";
-import { contracts as EthereumContracts } from "@venusprotocol/isolated-pools/deployments/ethereum.json";
-import { contracts as OpBnbMainnetContracts } from "@venusprotocol/isolated-pools/deployments/opbnbmainnet.json";
-import { contracts as OpBnbTestnetContracts } from "@venusprotocol/isolated-pools/deployments/opbnbtestnet.json";
-import { contracts as SepoliaContracts } from "@venusprotocol/isolated-pools/deployments/sepolia.json";
 
 export const contractAddresses = {
   sepolia: {
