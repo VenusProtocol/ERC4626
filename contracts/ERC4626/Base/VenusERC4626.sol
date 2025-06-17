@@ -11,6 +11,7 @@ import { MathUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 
 import { IComptroller, Action } from "../Interfaces/IComptroller.sol";
+import { VTokenInterface } from "../Interfaces/VTokenInterface.sol";
 
 uint256 constant EXP_SCALE = 1e18;
 
@@ -22,6 +23,9 @@ abstract contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, Reentr
 
     /// @notice Error code representing no errors in Venus operations.
     uint256 internal constant NO_ERROR = 0;
+
+    /// @notice The Venus vToken associated with this ERC4626 vault.
+    VTokenInterface public vToken;
 
     /// @notice The Venus Comptroller contract, responsible for market operations.
     IComptroller public comptroller;
@@ -77,9 +81,11 @@ abstract contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, Reentr
     /// @param vToken_ The VToken associated with the vault
     function initialize(address vToken_) public virtual initializer {
         ensureNonzeroAddress(vToken_);
-        _initializeVToken(vToken_);
 
-        ERC20Upgradeable asset = ERC20Upgradeable(_getUnderlying(vToken_));
+        vToken = VTokenInterface(vToken_);
+        comptroller = IComptroller(address(vToken.comptroller()));
+        ERC20Upgradeable asset = ERC20Upgradeable(vToken.underlying());
+
         __ERC20_init(_generateVaultName(asset), _generateVaultSymbol(asset));
         __ERC4626_init(asset);
         __ReentrancyGuard_init();
@@ -274,9 +280,6 @@ abstract contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, Reentr
         }
     }
 
-    /// @notice Must be implemented by child contracts to initialize vToken
-    function _initializeVToken(address vToken_) internal virtual;
-
     /// @notice Internal function to redeem shares
     function _beforeRedeem(uint256 shares) internal virtual returns (uint256) {
         IERC20Upgradeable token = IERC20Upgradeable(asset());
@@ -380,7 +383,4 @@ abstract contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, Reentr
     function _generateVaultSymbol(ERC20Upgradeable asset_) internal view virtual returns (string memory) {
         return string(abi.encodePacked("v4626", asset_.symbol()));
     }
-
-    /// @notice Must be implemented by child contracts to get underlying asset
-    function _getUnderlying(address vToken_) internal view virtual returns (address);
 }
