@@ -44,9 +44,9 @@ describe("VenusERC4626Factory", () => {
     // Setup fake contracts
     asset1 = await smock.fake("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
     asset2 = await smock.fake("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
-    coreVToken = await smock.fake("VToken");
-    isolatedVToken = await smock.fake("VToken");
-    invalidVToken = await smock.fake("VToken");
+    coreVToken = await smock.fake("@venusprotocol/venus-protocol/contracts/Tokens/VTokens/VToken.sol:VToken");
+    isolatedVToken = await smock.fake("@venusprotocol/isolated-pools/contracts/VToken.sol:VToken");
+    invalidVToken = await smock.fake("@venusprotocol/venus-protocol/contracts/Tokens/VTokens/VToken.sol:VToken");
     accessControl = await smock.fake("IAccessControlManagerV8");
     rewardRecipient = deployer.address;
 

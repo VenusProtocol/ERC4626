@@ -37,7 +37,7 @@ describe("VenusERC4626Isolated", () => {
     // Create Smock Fake Contracts
     asset = await smock.fake<ERC20>("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
     xvs = await smock.fake<ERC20>("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
-    vToken = await smock.fake<VToken>("VToken");
+    vToken = await smock.fake<VToken>("@venusprotocol/isolated-pools/contracts/VToken.sol:VToken");
     comptroller = await smock.fake<IComptroller>("contracts/ERC4626/Interfaces/IComptroller.sol:IComptroller");
     accessControlManager = await smock.fake("AccessControlManager");
     rewardDistributor = await smock.fake<IRewardsDistributor>("IRewardsDistributor");
