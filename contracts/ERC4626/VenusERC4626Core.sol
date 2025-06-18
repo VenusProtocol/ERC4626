@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity ^0.8.25;
 
-import { VenusERC4626 } from "./VenusERC4626.sol";
-import { VTokenInterface } from "./Interfaces/VTokenInterface.sol";
+import { VenusERC4626 } from "./Base/VenusERC4626.sol";
+import { IERC20Upgradeable, SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
 
 /// @title VenusERC4626Core
 /// @notice ERC4626 wrapper for Venus Core Pool vTokens
 contract VenusERC4626Core is VenusERC4626 {
-    /// @notice The Venus vToken associated with this ERC4626 vault.
-    VTokenInterface public vToken;
+    /// @notice Initializes the VenusERC4626Core contract
+    /// @param vToken_ The address of the vToken to be wrapped
+    function initialize(address vToken_) public virtual override initializer {
+        super.initialize(vToken_);
+    }
 
     /// @inheritdoc VenusERC4626
     function claimRewards() external override {
@@ -30,16 +33,5 @@ contract VenusERC4626Core is VenusERC4626 {
 
             emit ClaimRewards(rewardAmount, xvsAddress);
         }
-    }
-
-    /// @inheritdoc VenusERC4626
-    function _initializeVToken(address vToken_) internal override {
-        vToken = VTokenInterface(vToken_);
-        comptroller = IComptroller(address(vToken.comptroller()));
-    }
-
-    /// @inheritdoc VenusERC4626
-    function _getUnderlying(address vToken_) internal view override returns (address) {
-        return VTokenInterface(vToken_).underlying();
     }
 }
