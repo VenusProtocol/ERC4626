@@ -30,15 +30,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VenusProtocol/isolated-pools.git"
+    "url": "git+https://github.com/VenusProtocol/ERC4626.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/VenusProtocol/isolated-pools/issues"
+    "url": "https://github.com/VenusProtocol/ERC4626/issues"
   },
-  "homepage": "https://github.com/VenusProtocol/isolated-pools#readme",
+  "homepage": "https://github.com/VenusProtocol/ERC4626#readme",
   "engines": {
     "node": ">=18.0.0"
   },
