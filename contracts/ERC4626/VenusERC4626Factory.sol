@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity ^0.8.25;
+pragma solidity 0.8.25;
 
 import { ERC4626Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
 import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
@@ -14,7 +13,7 @@ import { VenusERC4626Isolated } from "./VenusERC4626Isolated.sol";
 
 import { PoolRegistryInterface } from "@venusprotocol/isolated-pools/contracts/Pool/PoolRegistryInterface.sol";
 import { MaxLoopsLimitHelper } from "@venusprotocol/isolated-pools/contracts/MaxLoopsLimitHelper.sol";
-import { VTokenInterface as IsolatedVTokenInterface } from "@venusprotocol/isolated-pools/contracts/VTokenInterfaces.sol";
+import { VTokenInterface } from "./Interfaces/VTokenInterface.sol";
 
 /// @title ERC4626Factory
 /// @notice Factory contract for deploying ERC4626 vaults (core and isolated) with beacon proxies.
@@ -22,7 +21,7 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     // --- Constants ---
 
     /// @notice Salt used to deterministically deploy isolated pool vaults
-    bytes32 public constant ISOLATED_SALT = keccak256("Venus-Isolated-ERC4626");
+    bytes32 public constant ISOLATED_SALT = keccak256("Venus-ERC4626 Vault");
 
     /// @notice Salt used to deterministically deploy core pool vaults
     bytes32 public constant CORE_SALT = keccak256("Venus-Core-ERC4626");
@@ -67,7 +66,7 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     /// @notice Thrown when the vToken provided is not valid (either unlisted or not part of the pool registry)
     error InvalidVToken();
 
-    /// @notice Constructor (disable initializer for upgradeable contract)
+    /// @notice Constructor
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -146,8 +145,8 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
             if (!listed) revert InvalidVToken();
             vault = _deployCoreVault(vToken);
         } else {
-            address underlying = IsolatedVTokenInterface(vToken).underlying();
-            address comptroller = address(IsolatedVTokenInterface(vToken).comptroller());
+            address underlying = VTokenInterface(vToken).underlying();
+            address comptroller = address(VTokenInterface(vToken).comptroller());
             if (vToken != poolRegistry.getVTokenForAsset(comptroller, underlying)) {
                 revert InvalidVToken();
             }

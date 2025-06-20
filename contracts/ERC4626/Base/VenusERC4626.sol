@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity ^0.8.25;
+pragma solidity 0.8.25;
 
 import { ERC4626Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
@@ -154,6 +154,8 @@ abstract contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, Reentr
         return actualShares;
     }
 
+    /// @dev The minted shares are calculated considering the minted VTokens
+    /// @dev It can mint slightly fewer shares than requested, because VToken.mint rounds down
     /// @inheritdoc ERC4626Upgradeable
     function mint(uint256 shares, address receiver) public virtual override nonReentrant returns (uint256) {
         ensureNonzeroAddress(receiver);
@@ -174,6 +176,8 @@ abstract contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, Reentr
         return assets;
     }
 
+    /// @dev Receiver can receive slightly more assets than requested, because VToken.redeemUnderlying rounds up
+    /// @dev The shares to burn are calculated considering the actual transferred assets, not the requested ones
     /// @inheritdoc ERC4626Upgradeable
     function withdraw(
         uint256 assets,

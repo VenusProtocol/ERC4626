@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity ^0.8.25;
+pragma solidity 0.8.25;
 
 import { VenusERC4626 } from "./Base/VenusERC4626.sol";
 import { IERC20Upgradeable, SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
