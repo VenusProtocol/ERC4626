@@ -20,6 +20,7 @@ import { contracts as venusProtocolOpbnbTestnet } from "@venusprotocol/venus-pro
 import { contracts as venusProtocolSepolia } from "@venusprotocol/venus-protocol/deployments/sepolia.json";
 import { contracts as venusProtocolZkSyncMainnet } from "@venusprotocol/venus-protocol/deployments/zksyncmainnet.json";
 import { contracts as venusProtocolZkSyncSepolia } from "@venusprotocol/venus-protocol/deployments/zksyncsepolia.json";
+import { Wallet } from "ethers";
 
 export type NetworkConfig = {
   hardhat: DeploymentConfig;
@@ -98,6 +99,8 @@ export const UNICHAIN_MAINNET_MULTISIG = "0x1803Cf1D3495b43cC628aa1d8638A981F8CD
 export const preconfiguredAddresses = {
   hardhat: {
     VTreasury: "account:deployer",
+    AccessControlManager: Wallet.createRandom().address,
+    PoolRegistry: Wallet.createRandom().address,
   },
   bsctestnet: {
     VTreasury: venusProtocolBscTestnet.VTreasury.address,
