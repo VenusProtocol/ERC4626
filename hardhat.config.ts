@@ -42,71 +42,66 @@ extendConfig((config: HardhatConfig) => {
         bsctestnet: [
           "node_modules/@venusprotocol/oracle/deployments/bsctestnet",
           "node_modules/@venusprotocol/venus-protocol/deployments/bsctestnet",
+          "node_modules/@venusprotocol/isolated-pools/deployments/bsctestnet",
           "node_modules/@venusprotocol/protocol-reserve/deployments/bsctestnet",
-          "node_modules/@venusprotocol/governance-contracts/deployments/bsctestnet",
         ],
         sepolia: [
           "node_modules/@venusprotocol/oracle/deployments/sepolia",
           "node_modules/@venusprotocol/venus-protocol/deployments/sepolia",
+          "node_modules/@venusprotocol/isolated-pools/deployments/sepolia",
           "node_modules/@venusprotocol/protocol-reserve/deployments/sepolia",
-          "node_modules/@venusprotocol/governance-contracts/deployments/sepolia",
         ],
         ethereum: [
           "node_modules/@venusprotocol/oracle/deployments/ethereum",
           "node_modules/@venusprotocol/venus-protocol/deployments/ethereum",
+          "node_modules/@venusprotocol/isolated-pools/deployments/ethereum",
           "node_modules/@venusprotocol/protocol-reserve/deployments/ethereum",
-          "node_modules/@venusprotocol/governance-contracts/deployments/ethereum",
         ],
         bscmainnet: [
           "node_modules/@venusprotocol/oracle/deployments/bscmainnet",
           "node_modules/@venusprotocol/venus-protocol/deployments/bscmainnet",
+          "node_modules/@venusprotocol/isolated-pools/deployments/bscmainnet",
           "node_modules/@venusprotocol/protocol-reserve/deployments/bscmainnet",
-          "node_modules/@venusprotocol/governance-contracts/deployments/bscmainnet",
         ],
         opbnbmainnet: [
           "node_modules/@venusprotocol/oracle/deployments/opbnbmainnet",
+          "node_modules/@venusprotocol/isolated-pools/deployments/opbnbmainnet",
           "node_modules/@venusprotocol/protocol-reserve/deployments/opbnbmainnet",
-          "node_modules/@venusprotocol/governance-contracts/deployments/opbnbmainnet",
         ],
         opbnbtestnet: [
           "node_modules/@venusprotocol/oracle/deployments/opbnbtestnet",
+          "node_modules/@venusprotocol/isolated-pools/deployments/opbnbtestnet",
           "node_modules/@venusprotocol/protocol-reserve/deployments/opbnbtestnet",
-          "node_modules/@venusprotocol/governance-contracts/deployments/opbnbtestnet",
         ],
         arbitrumsepolia: [
           "node_modules/@venusprotocol/oracle/deployments/arbitrumsepolia",
+          "node_modules/@venusprotocol/isolated-pools/deployments/arbitrumsepolia",
           "node_modules/@venusprotocol/protocol-reserve/deployments/arbitrumsepolia",
-          "node_modules/@venusprotocol/governance-contracts/deployments/arbitrumsepolia",
         ],
         arbitrumone: [
           "node_modules/@venusprotocol/oracle/deployments/arbitrumone",
+          "node_modules/@venusprotocol/isolated-pools/deployments/arbitrumone",
           "node_modules/@venusprotocol/protocol-reserve/deployments/arbitrumone",
-          "node_modules/@venusprotocol/governance-contracts/deployments/arbitrumone",
         ],
         basesepolia: [
           "node_modules/@venusprotocol/oracle/deployments/basesepolia",
+          "node_modules/@venusprotocol/isolated-pools/deployments/basesepolia",
           "node_modules/@venusprotocol/protocol-reserve/deployments/basesepolia",
-          "node_modules/@venusprotocol/governance-contracts/deployments/basesepolia",
         ],
         basemainnet: [
           "node_modules/@venusprotocol/oracle/deployments/basemainnet",
+          "node_modules/@venusprotocol/isolated-pools/deployments/basemainnet",
           "node_modules/@venusprotocol/protocol-reserve/deployments/basemainnet",
-          "node_modules/@venusprotocol/governance-contracts/deployments/basemainnet",
         ],
         unichainsepolia: [
           "node_modules/@venusprotocol/oracle/deployments/unichainsepolia",
+          "node_modules/@venusprotocol/isolated-pools/deployments/unichainsepolia",
           "node_modules/@venusprotocol/protocol-reserve/deployments/unichainsepolia",
-          "node_modules/@venusprotocol/governance-contracts/deployments/unichainsepolia",
         ],
         unichainmainnet: [
           "node_modules/@venusprotocol/oracle/deployments/unichainmainnet",
+          "node_modules/@venusprotocol/isolated-pools/deployments/unichainmainnet",
           "node_modules/@venusprotocol/protocol-reserve/deployments/unichainmainnet",
-          "node_modules/@venusprotocol/governance-contracts/deployments/unichainmainnet",
-        ],
-        berachainbartio: [
-          "node_modules/@venusprotocol/oracle/deployments/berachainbartio",
-          "node_modules/@venusprotocol/protocol-reserve/deployments/berachainbartio",
-          "node_modules/@venusprotocol/governance-contracts/deployments/berachainbartio",
         ],
       },
     };
@@ -115,8 +110,8 @@ extendConfig((config: HardhatConfig) => {
         `./deployments/${process.env.HARDHAT_FORK_NETWORK}`,
         `node_modules/@venusprotocol/oracle/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
         `node_modules/@venusprotocol/venus-protocol/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
+        `node_modules/@venusprotocol/isolated-pools/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
         `node_modules/@venusprotocol/protocol-reserve/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
-        `node_modules/@venusprotocol/governance-contracts/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
       ];
     }
   }
@@ -298,13 +293,6 @@ const config: HardhatUserConfig = {
       live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
-    berachainbartio: {
-      url: process.env.ARCHIVE_NODE_berachainbartio || "https://bartio.rpc.berachain.com",
-      chainId: 80084,
-      live: true,
-      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
-      tags: ["testnet"],
-    },
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
@@ -432,14 +420,6 @@ const config: HardhatUserConfig = {
           browserURL: "https://uniscan.xyz/",
         },
       },
-      {
-        network: "berachainbartio",
-        chainId: 80084,
-        urls: {
-          apiURL: "https://api.routescan.io/v2/network/testnet/evm/80084/etherscan",
-          browserURL: "https://bartio.beratrail.io",
-        },
-      },
     ],
     apiKey: {
       bscmainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
@@ -456,7 +436,6 @@ const config: HardhatUserConfig = {
       basemainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       unichainsepolia: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       unichainmainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
-      berachainbartio: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
     },
   },
   paths: {
@@ -484,10 +463,10 @@ const config: HardhatUserConfig = {
         artifacts: "node_modules/@venusprotocol/venus-protocol/artifacts",
       },
       {
-        artifacts: "node_modules/@venusprotocol/protocol-reserve/artifacts",
+        artifacts: "node_modules/@venusprotocol/isolated-pools/artifacts",
       },
       {
-        artifacts: "node_modules/@venusprotocol/governance-contracts/artifacts",
+        artifacts: "node_modules/@venusprotocol/protocol-reserve/artifacts",
       },
     ],
   },
