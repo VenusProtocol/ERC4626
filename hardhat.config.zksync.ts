@@ -26,12 +26,14 @@ extendConfig((config: HardhatConfig) => {
       ...config.external,
       deployments: {
         zksyncsepolia: [
+          "node_modules/@venusprotocol/oracle/deployments/zksyncsepolia",
+          "node_modules/@venusprotocol/isolated-pools/deployments/zksyncsepolia",
           "node_modules/@venusprotocol/protocol-reserve/deployments/zksyncsepolia",
-          "node_modules/@venusprotocol/governance-contracts/deployments/zksyncsepolia",
         ],
         zksyncmainnet: [
+          "node_modules/@venusprotocol/oracle/deployments/zksyncmainnet",
+          "node_modules/@venusprotocol/isolated-pools/deployments/zksyncmainnet",
           "node_modules/@venusprotocol/protocol-reserve/deployments/zksyncmainnet",
-          "node_modules/@venusprotocol/governance-contracts/deployments/zksyncmainnet",
         ],
       },
     };
