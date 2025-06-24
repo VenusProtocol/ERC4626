@@ -9,14 +9,11 @@ import "@typechain/hardhat";
 import * as dotenv from "dotenv";
 import "hardhat-dependency-compiler";
 import "hardhat-deploy";
-import { DeployResult } from "hardhat-deploy/types";
 import "hardhat-gas-reporter";
-import { HardhatUserConfig, extendConfig, extendEnvironment, task, types } from "hardhat/config";
+import { HardhatUserConfig, extendConfig, extendEnvironment, task } from "hardhat/config";
 import { HardhatConfig } from "hardhat/types";
 import "solidity-coverage";
 import "solidity-docgen";
-
-import { convertToUnit } from "./helpers/utils";
 
 dotenv.config();
 const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY;
@@ -45,71 +42,66 @@ extendConfig((config: HardhatConfig) => {
         bsctestnet: [
           "node_modules/@venusprotocol/oracle/deployments/bsctestnet",
           "node_modules/@venusprotocol/venus-protocol/deployments/bsctestnet",
+          "node_modules/@venusprotocol/isolated-pools/deployments/bsctestnet",
           "node_modules/@venusprotocol/protocol-reserve/deployments/bsctestnet",
-          "node_modules/@venusprotocol/governance-contracts/deployments/bsctestnet",
         ],
         sepolia: [
           "node_modules/@venusprotocol/oracle/deployments/sepolia",
           "node_modules/@venusprotocol/venus-protocol/deployments/sepolia",
+          "node_modules/@venusprotocol/isolated-pools/deployments/sepolia",
           "node_modules/@venusprotocol/protocol-reserve/deployments/sepolia",
-          "node_modules/@venusprotocol/governance-contracts/deployments/sepolia",
         ],
         ethereum: [
           "node_modules/@venusprotocol/oracle/deployments/ethereum",
           "node_modules/@venusprotocol/venus-protocol/deployments/ethereum",
+          "node_modules/@venusprotocol/isolated-pools/deployments/ethereum",
           "node_modules/@venusprotocol/protocol-reserve/deployments/ethereum",
-          "node_modules/@venusprotocol/governance-contracts/deployments/ethereum",
         ],
         bscmainnet: [
           "node_modules/@venusprotocol/oracle/deployments/bscmainnet",
           "node_modules/@venusprotocol/venus-protocol/deployments/bscmainnet",
+          "node_modules/@venusprotocol/isolated-pools/deployments/bscmainnet",
           "node_modules/@venusprotocol/protocol-reserve/deployments/bscmainnet",
-          "node_modules/@venusprotocol/governance-contracts/deployments/bscmainnet",
         ],
         opbnbmainnet: [
           "node_modules/@venusprotocol/oracle/deployments/opbnbmainnet",
+          "node_modules/@venusprotocol/isolated-pools/deployments/opbnbmainnet",
           "node_modules/@venusprotocol/protocol-reserve/deployments/opbnbmainnet",
-          "node_modules/@venusprotocol/governance-contracts/deployments/opbnbmainnet",
         ],
         opbnbtestnet: [
           "node_modules/@venusprotocol/oracle/deployments/opbnbtestnet",
+          "node_modules/@venusprotocol/isolated-pools/deployments/opbnbtestnet",
           "node_modules/@venusprotocol/protocol-reserve/deployments/opbnbtestnet",
-          "node_modules/@venusprotocol/governance-contracts/deployments/opbnbtestnet",
         ],
         arbitrumsepolia: [
           "node_modules/@venusprotocol/oracle/deployments/arbitrumsepolia",
+          "node_modules/@venusprotocol/isolated-pools/deployments/arbitrumsepolia",
           "node_modules/@venusprotocol/protocol-reserve/deployments/arbitrumsepolia",
-          "node_modules/@venusprotocol/governance-contracts/deployments/arbitrumsepolia",
         ],
         arbitrumone: [
           "node_modules/@venusprotocol/oracle/deployments/arbitrumone",
+          "node_modules/@venusprotocol/isolated-pools/deployments/arbitrumone",
           "node_modules/@venusprotocol/protocol-reserve/deployments/arbitrumone",
-          "node_modules/@venusprotocol/governance-contracts/deployments/arbitrumone",
         ],
         basesepolia: [
           "node_modules/@venusprotocol/oracle/deployments/basesepolia",
+          "node_modules/@venusprotocol/isolated-pools/deployments/basesepolia",
           "node_modules/@venusprotocol/protocol-reserve/deployments/basesepolia",
-          "node_modules/@venusprotocol/governance-contracts/deployments/basesepolia",
         ],
         basemainnet: [
           "node_modules/@venusprotocol/oracle/deployments/basemainnet",
+          "node_modules/@venusprotocol/isolated-pools/deployments/basemainnet",
           "node_modules/@venusprotocol/protocol-reserve/deployments/basemainnet",
-          "node_modules/@venusprotocol/governance-contracts/deployments/basemainnet",
         ],
         unichainsepolia: [
           "node_modules/@venusprotocol/oracle/deployments/unichainsepolia",
+          "node_modules/@venusprotocol/isolated-pools/deployments/unichainsepolia",
           "node_modules/@venusprotocol/protocol-reserve/deployments/unichainsepolia",
-          "node_modules/@venusprotocol/governance-contracts/deployments/unichainsepolia",
         ],
         unichainmainnet: [
           "node_modules/@venusprotocol/oracle/deployments/unichainmainnet",
+          "node_modules/@venusprotocol/isolated-pools/deployments/unichainmainnet",
           "node_modules/@venusprotocol/protocol-reserve/deployments/unichainmainnet",
-          "node_modules/@venusprotocol/governance-contracts/deployments/unichainmainnet",
-        ],
-        berachainbartio: [
-          "node_modules/@venusprotocol/oracle/deployments/berachainbartio",
-          "node_modules/@venusprotocol/protocol-reserve/deployments/berachainbartio",
-          "node_modules/@venusprotocol/governance-contracts/deployments/berachainbartio",
         ],
       },
     };
@@ -118,8 +110,8 @@ extendConfig((config: HardhatConfig) => {
         `./deployments/${process.env.HARDHAT_FORK_NETWORK}`,
         `node_modules/@venusprotocol/oracle/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
         `node_modules/@venusprotocol/venus-protocol/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
+        `node_modules/@venusprotocol/isolated-pools/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
         `node_modules/@venusprotocol/protocol-reserve/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
-        `node_modules/@venusprotocol/governance-contracts/deployments/${process.env.HARDHAT_FORK_NETWORK}`,
       ];
     }
   }
@@ -134,91 +126,6 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
     console.log(account.address);
   }
 });
-
-task("addMarket", "Add a market to an existing pool")
-  .addParam("proxyAdmin", "Admin of vToken proxy")
-  .addParam("poolid", "ID of pool to add a market", 1, types.int)
-  .addParam("asset", "asset (ERC20) address", "0x0000000000000000000000000000000000000000", types.string)
-  .addParam("decimals", "asset decimal places", 8, types.int)
-  .addParam("name", "name of the market", undefined, types.string)
-  .addParam("symbol", "symbol of market", undefined, types.string)
-  .addParam("rateModel", "0 - WhitePaper ; 1- JumpRate", 0, types.int)
-  .addParam("baseRate", "base rate per year", 0, types.int)
-  .addParam("multiplier", "multiplier per year", "40000000000000000", types.string)
-  .addParam("jumpMul", "jump multiplier per yer", 0, types.int)
-  .addParam("kink", "kink rate", 0, types.int)
-  .addParam("collFactor", "collateral factor is exonented to 18 decimals (e.g input = input*10**18)", 0.7, types.float)
-  .setAction(async (taskArgs, hre) => {
-    const VBep20Immutable = await hre.ethers.getContractFactory("VBep20Immutable");
-    const tokenImplementation = await VBep20Immutable.deploy();
-    await tokenImplementation.deployed();
-
-    const poolRegistry = await hre.ethers.getContract("PoolRegistry");
-    const accessControl = await hre.ethers.getContract("AccessControlManager");
-
-    await poolRegistry.addMarket({
-      comptroller: taskArgs.comptroller,
-      asset: taskArgs.asset,
-      decimals: taskArgs.decimals,
-      name: taskArgs.name,
-      symbol: taskArgs.symbol,
-      rateModel: taskArgs.rateModel,
-      baseRatePerYear: taskArgs.baseRate,
-      multiplierPerYear: taskArgs.multiplier,
-      jumpMultiplierPerYear: taskArgs.jumpMul,
-      kink_: taskArgs.kink,
-      collateralFactor: convertToUnit(taskArgs.collFactor, 18),
-      accessControlManager: accessControl.address,
-      vTokenProxyAdmin: taskArgs.proxyAdmin,
-      tokenImplementation_: tokenImplementation.address,
-    });
-
-    console.log("Market " + taskArgs.name + " added successfully to pool " + taskArgs.comptroller);
-  });
-
-task("deployComptroller", "Deploys a Comptroller Implementation")
-  .addParam("contractName", "Contract name, later we can load contracts by name")
-  .addParam("poolRegistry", "Address of PoolRegistry Contract")
-  .setAction(async (taskArgs, hre) => {
-    const { deployer } = await hre.getNamedAccounts();
-    const Comptroller: DeployResult = await hre.deployments.deploy(taskArgs.contractName, {
-      contract: "Comptroller",
-      from: deployer,
-      args: [taskArgs.poolRegistry],
-      log: true,
-    });
-
-    console.log("Comptroller implementation deployed with address: " + Comptroller.address);
-  });
-
-task("createPool", "Creates a pool via PoolRegistry")
-  .addParam("poolName", "Name of the pool")
-  .addParam("comptroller", "Address of comptroller implementation")
-  .addParam("oracle", "Contract name, later we can load contracts by name")
-  .addParam("closeFactor", "Close factor for pool")
-  .addParam("liquidationIncentive", "Liquidation incentive for pool")
-  .setAction(async (taskArgs, hre) => {
-    const poolRegistry = await hre.ethers.getContract("PoolRegistry");
-    await poolRegistry.createRegistryPool(
-      taskArgs.poolName,
-      taskArgs.comptroller,
-      taskArgs.closeFactor,
-      taskArgs.liquidationIncentive,
-      taskArgs.minLiquidatableCollateral,
-      taskArgs.oracle,
-    );
-
-    const pools = await poolRegistry.callStatic.getAllPools();
-    await hre.ethers.getContractAt("Comptroller", pools[0].comptroller);
-
-    const unitroller = await hre.ethers.getContractAt("Unitroller", pools[0].comptroller);
-    await unitroller._acceptAdmin();
-
-    console.log("Pool " + taskArgs.poolName + " has been sucessfully created");
-  });
-
-// You need to export an object to set up your config
-// Go to https://hardhat.org/config/ to learn more
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -386,13 +293,6 @@ const config: HardhatUserConfig = {
       live: true,
       accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
     },
-    berachainbartio: {
-      url: process.env.ARCHIVE_NODE_berachainbartio || "https://bartio.rpc.berachain.com",
-      chainId: 80084,
-      live: true,
-      accounts: DEPLOYER_PRIVATE_KEY ? [`0x${DEPLOYER_PRIVATE_KEY}`] : [],
-      tags: ["testnet"],
-    },
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
@@ -520,14 +420,6 @@ const config: HardhatUserConfig = {
           browserURL: "https://uniscan.xyz/",
         },
       },
-      {
-        network: "berachainbartio",
-        chainId: 80084,
-        urls: {
-          apiURL: "https://api.routescan.io/v2/network/testnet/evm/80084/etherscan",
-          browserURL: "https://bartio.beratrail.io",
-        },
-      },
     ],
     apiKey: {
       bscmainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
@@ -544,7 +436,6 @@ const config: HardhatUserConfig = {
       basemainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       unichainsepolia: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
       unichainmainnet: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
-      berachainbartio: process.env.ETHERSCAN_API_KEY || "ETHERSCAN_API_KEY",
     },
   },
   paths: {
@@ -572,10 +463,10 @@ const config: HardhatUserConfig = {
         artifacts: "node_modules/@venusprotocol/venus-protocol/artifacts",
       },
       {
-        artifacts: "node_modules/@venusprotocol/protocol-reserve/artifacts",
+        artifacts: "node_modules/@venusprotocol/isolated-pools/artifacts",
       },
       {
-        artifacts: "node_modules/@venusprotocol/governance-contracts/artifacts",
+        artifacts: "node_modules/@venusprotocol/protocol-reserve/artifacts",
       },
     ],
   },

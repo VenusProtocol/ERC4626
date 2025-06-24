@@ -1,0 +1,10 @@
+{
+  "name": "bsctestnet",
+  "chainId": "97",
+  "addresses": {
+    "VenusERC4626Factory": "0x07fcd489aef6a3EEAA9e8adE4361Fe5CC5BF30f7",
+    "VenusERC4626Factory_Implementation": "0xA67563B3f6A68B3f3FFa1828BD5D07f0B99b00ea",
+    "VenusERC4626Factory_Proxy": "0x07fcd489aef6a3EEAA9e8adE4361Fe5CC5BF30f7",
+    "VenusERC4626Implementation": "0xA1cA35B92DE0833706DD9BD721f2844c0609c58c"
+  }
+}

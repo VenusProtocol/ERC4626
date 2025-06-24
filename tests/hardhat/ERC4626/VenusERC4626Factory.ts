@@ -38,12 +38,14 @@ describe("VenusERC4626Factory", () => {
     [deployer, user] = await ethers.getSigners();
 
     listedAsset = await smock.fake("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
-    vTokenA = await smock.fake("VToken");
-    vTokenB = await smock.fake("VToken");
-    fakeVToken = await smock.fake("VToken");
-    unlistedVToken = await smock.fake("VToken");
+    vTokenA = await smock.fake("@venusprotocol/isolated-pools/contracts/VToken.sol:VToken");
+    vTokenB = await smock.fake("@venusprotocol/isolated-pools/contracts/VToken.sol:VToken");
+    fakeVToken = await smock.fake("@venusprotocol/isolated-pools/contracts/VToken.sol:VToken");
+    unlistedVToken = await smock.fake("@venusprotocol/isolated-pools/contracts/VToken.sol:VToken");
     comptroller = await smock.fake("@venusprotocol/isolated-pools/contracts/Comptroller.sol:Comptroller");
-    poolRegistry = await smock.fake("@venusprotocol/isolated-pools/contracts/Pool/PoolRegistryInterface.sol:PoolRegistryInterface");
+    poolRegistry = await smock.fake(
+      "@venusprotocol/isolated-pools/contracts/Pool/PoolRegistryInterface.sol:PoolRegistryInterface",
+    );
     accessControlManager = await smock.fake("AccessControlManager");
     rewardRecipient = deployer.address;
 
