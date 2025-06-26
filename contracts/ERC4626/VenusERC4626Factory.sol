@@ -18,33 +18,31 @@ import { VTokenInterface } from "./Interfaces/VTokenInterface.sol";
 /// @title ERC4626Factory
 /// @notice Factory contract for deploying ERC4626 vaults (core and isolated) with beacon proxies.
 contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
-    // --- Constants ---
-
     /// @notice Salt used to deterministically deploy isolated pool vaults
+    /// @dev Previously named `salt`
     bytes32 public constant ISOLATED_SALT = keccak256("Venus-ERC4626 Vault");
 
-    /// @notice Salt used to deterministically deploy core pool vaults
-    bytes32 public constant CORE_SALT = keccak256("Venus-Core-ERC4626");
-
-    // --- State Variables ---
-
     /// @notice Beacon for isolated vaults
+    /// @dev Previously named `beacon`
     UpgradeableBeacon public isolatedBeacon;
-
-    /// @notice Beacon for core vaults
-    UpgradeableBeacon public coreBeacon;
 
     /// @notice PoolRegistry contract to validate isolated pool vTokens
     PoolRegistryInterface public poolRegistry;
 
-    /// @notice Comptroller for core pool validation
-    IComptroller public coreComptroller;
-
     /// @notice Address to which rewards will be distributed
     address public rewardRecipient;
 
-    /// @notice Mapping from vToken to deployed ERC4626 vault
-    mapping(address => ERC4626Upgradeable) public vaults;
+    /// @notice Mapping from vToken to deployed ERC4626 vaults
+    mapping(address vToken => ERC4626Upgradeable vault) public createdVaults;
+
+    /// @notice Salt used to deterministically deploy core pool vaults
+    bytes32 public constant CORE_SALT = keccak256("Venus-Core-ERC4626");
+
+    /// @notice Beacon for core vaults
+    UpgradeableBeacon public coreBeacon;
+
+    /// @notice Comptroller for core pool validation
+    IComptroller public coreComptroller;
 
     /// @notice Mapping indicating whether a vault belongs to core pool
     mapping(address => bool) public isCoreVault;
@@ -60,11 +58,11 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     /// @param newRecipient The new reward recipient address
     event RewardRecipientUpdated(address indexed oldRecipient, address indexed newRecipient);
 
-    /// @notice Thrown when a vault already exists for the given vToken
-    error VaultAlreadyExists();
+    /// @notice Thrown when the provided vToken is not registered in PoolRegistry
+    error VenusERC4626Factory__InvalidVToken();
 
-    /// @notice Thrown when the vToken provided is not valid (either unlisted or not part of the pool registry)
-    error InvalidVToken();
+    /// @notice Thrown when a VenusERC4626 already exists for the provided vToken
+    error VenusERC4626Factory__ERC4626AlreadyExists();
 
     /// @notice Constructor
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -101,9 +99,15 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
         coreBeacon = new UpgradeableBeacon(coreImplementation);
 
         poolRegistry = PoolRegistryInterface(poolRegistry_);
-        coreComptroller = IComptroller(coreComptroller_);
         rewardRecipient = rewardRecipient_;
 
+        if (coreComptroller_ != address(0)) {
+            coreComptroller = IComptroller(coreComptroller_);
+        } else {
+            coreComptroller = IComptroller(address(0));
+        }
+
+        // The owner of the beacon will initially be the owner of the factory
         isolatedBeacon.transferOwnership(owner());
         coreBeacon.transferOwnership(owner());
     }
@@ -138,23 +142,23 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     /// @custom:error InvalidVToken if the vToken is invalid or unlisted
     /// @custom:event Emits VaultCreated event on successful deployment
     function createERC4626(address vToken, bool isCore) external returns (ERC4626Upgradeable vault) {
-        if (address(vaults[vToken]) != address(0)) revert VaultAlreadyExists();
+        if (address(createdVaults[vToken]) != address(0)) revert VenusERC4626Factory__ERC4626AlreadyExists();
 
         if (isCore) {
             (bool listed, ) = coreComptroller.markets(vToken);
-            if (!listed) revert InvalidVToken();
+            if (!listed) revert VenusERC4626Factory__InvalidVToken();
             vault = _deployCoreVault(vToken);
         } else {
             address underlying = VTokenInterface(vToken).underlying();
             address comptroller = address(VTokenInterface(vToken).comptroller());
             if (vToken != poolRegistry.getVTokenForAsset(comptroller, underlying)) {
-                revert InvalidVToken();
+                revert VenusERC4626Factory__InvalidVToken();
             }
 
             vault = _deployIsolatedVault(vToken);
         }
 
-        vaults[vToken] = vault;
+        createdVaults[vToken] = vault;
         isCoreVault[vToken] = isCore;
         emit VaultCreated(vToken, address(vault), isCore);
     }
