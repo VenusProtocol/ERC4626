@@ -2,26 +2,26 @@ pragma solidity 0.8.25;
 
 import { IComptroller } from "./IComptroller.sol";
 
-abstract contract VTokenInterface {
-    function mint(uint mintAmount) external virtual returns (uint);
+interface VTokenInterface {
+    function mint(uint256 mintAmount) external returns (uint256);
 
-    function redeem(uint redeemTokens) external virtual returns (uint);
+    function redeem(uint256 redeemTokens) external returns (uint256);
 
-    function redeemUnderlying(uint redeemAmount) external virtual returns (uint);
+    function redeemUnderlying(uint256 redeemAmount) external returns (uint256);
 
-    function balanceOf(address owner) external view virtual returns (uint);
+    function balanceOf(address owner) external view returns (uint256);
 
-    function comptroller() external view virtual returns (IComptroller);
+    function comptroller() external view returns (IComptroller);
 
-    function totalSupply() external view virtual returns (uint);
+    function totalSupply() external view returns (uint256);
 
-    function underlying() external view virtual returns (address);
+    function underlying() external view returns (address);
 
-    function getCash() external view virtual returns (uint);
+    function getCash() external view returns (uint256);
 
-    function exchangeRateStored() public view virtual returns (uint);
+    function exchangeRateStored() external view returns (uint256);
 
-    function accrueInterest() public view virtual returns (uint);
+    function accrueInterest() external view returns (uint256);
 
-    function totalReserves() public view virtual returns (uint);
+    function totalReserves() external view returns (uint256);
 }
