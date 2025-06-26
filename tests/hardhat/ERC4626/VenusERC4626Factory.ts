@@ -113,7 +113,7 @@ describe("VenusERC4626Factory", () => {
 
   describe("Vault Creation", () => {
     it("should create core vault and emit event", async () => {
-      const tx = await factory.createERC4626(coreVToken.address, true);
+      const tx = await factory.createERC4626(coreVToken.address);
       const receipt = await tx.wait();
       const event = receipt.events?.find(e => e.event === "VaultCreated");
 
@@ -122,7 +122,7 @@ describe("VenusERC4626Factory", () => {
     });
 
     it("should create isolated vault and emit event", async () => {
-      const tx = await factory.createERC4626(isolatedVToken.address, false);
+      const tx = await factory.createERC4626(isolatedVToken.address);
       const receipt = await tx.wait();
       const event = receipt.events?.find(e => e.event === "VaultCreated");
 
@@ -132,40 +132,40 @@ describe("VenusERC4626Factory", () => {
 
     it("should revert for invalid core vToken", async () => {
       coreComptroller.markets.whenCalledWith(invalidVToken.address).returns([false, 0]);
-      await expect(factory.createERC4626(invalidVToken.address, true)).to.be.revertedWithCustomError(
+      await expect(factory.createERC4626(invalidVToken.address)).to.be.revertedWithCustomError(
         factory,
-        "InvalidVToken",
+        "VenusERC4626Factory__InvalidVToken",
       );
     });
 
     it("should revert for invalid isolated vToken", async () => {
       poolRegistry.getVTokenForAsset.returns(constants.AddressZero);
-      await expect(factory.createERC4626(invalidVToken.address, false)).to.be.revertedWithCustomError(
+      await expect(factory.createERC4626(invalidVToken.address)).to.be.revertedWithCustomError(
         factory,
-        "InvalidVToken",
+        "VenusERC4626Factory__InvalidVToken",
       );
     });
 
     it("should revert for duplicate vToken", async () => {
-      await factory.createERC4626(coreVToken.address, true);
-      await expect(factory.createERC4626(coreVToken.address, true)).to.be.revertedWithCustomError(
+      await factory.createERC4626(coreVToken.address);
+      await expect(factory.createERC4626(coreVToken.address)).to.be.revertedWithCustomError(
         factory,
-        "VaultAlreadyExists",
+        "VenusERC4626Factory__ERC4626AlreadyExists",
       );
     });
   });
 
   describe("CREATE2 Functionality", () => {
     it("should deploy core vault to predicted address", async () => {
-      const predicted = await factory.computeVaultAddress(coreVToken.address, true);
-      const tx = await factory.createERC4626(coreVToken.address, true);
+      const predicted = await factory.computeVaultAddress(coreVToken.address);
+      const tx = await factory.createERC4626(coreVToken.address);
       const deployed = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
       expect(deployed).to.equal(predicted);
     });
 
     it("should deploy isolated vault to predicted address", async () => {
-      const predicted = await factory.computeVaultAddress(isolatedVToken.address, false);
-      const tx = await factory.createERC4626(isolatedVToken.address, false);
+      const predicted = await factory.computeVaultAddress(isolatedVToken.address);
+      const tx = await factory.createERC4626(isolatedVToken.address);
       const deployed = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
       expect(deployed).to.equal(predicted);
     });
@@ -200,7 +200,7 @@ describe("VenusERC4626Factory", () => {
 
   describe("Beacon Verification", () => {
     it("should use correct beacon for core vault", async () => {
-      const tx = await factory.createERC4626(coreVToken.address, true);
+      const tx = await factory.createERC4626(coreVToken.address);
       const vaultAddress = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
 
       const beaconSlot = ethers.utils.hexlify(
@@ -212,7 +212,7 @@ describe("VenusERC4626Factory", () => {
     });
 
     it("should use correct beacon for isolated vault", async () => {
-      const tx = await factory.createERC4626(isolatedVToken.address, false);
+      const tx = await factory.createERC4626(isolatedVToken.address);
       const vaultAddress = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
 
       const beaconSlot = ethers.utils.hexlify(
@@ -226,7 +226,7 @@ describe("VenusERC4626Factory", () => {
 
   describe("Vault Initialization", () => {
     it("should initialize core vault with correct parameters", async () => {
-      const tx = await factory.createERC4626(coreVToken.address, true);
+      const tx = await factory.createERC4626(coreVToken.address);
       const vaultAddress = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
       const vault = await ethers.getContractAt("VenusERC4626Core", vaultAddress);
 
@@ -235,7 +235,7 @@ describe("VenusERC4626Factory", () => {
     });
 
     it("should initialize isolated vault with correct parameters", async () => {
-      const tx = await factory.createERC4626(isolatedVToken.address, false);
+      const tx = await factory.createERC4626(isolatedVToken.address);
       const vaultAddress = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
       const vault = await ethers.getContractAt("VenusERC4626Isolated", vaultAddress);
 
