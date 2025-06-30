@@ -22,6 +22,9 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     /// @dev Previously named `salt`
     bytes32 public constant ISOLATED_SALT = keccak256("Venus-ERC4626 Vault");
 
+    /// @notice Salt used to deterministically deploy core pool vaults
+    bytes32 public constant CORE_SALT = keccak256("Venus-Core-ERC4626");
+
     /// @notice Beacon for isolated vaults
     /// @dev Previously named `beacon`
     UpgradeableBeacon public isolatedBeacon;
@@ -34,9 +37,6 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
 
     /// @notice Mapping from vToken to deployed ERC4626 vaults
     mapping(address vToken => ERC4626Upgradeable vault) public createdVaults;
-
-    /// @notice Salt used to deterministically deploy core pool vaults
-    bytes32 public constant CORE_SALT = keccak256("Venus-Core-ERC4626");
 
     /// @notice Beacon for core vaults
     UpgradeableBeacon public coreBeacon;
@@ -89,7 +89,6 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
         ensureNonzeroAddress(isolatedImplementation);
         ensureNonzeroAddress(coreImplementation);
         ensureNonzeroAddress(poolRegistry_);
-        ensureNonzeroAddress(coreComptroller_);
         ensureNonzeroAddress(rewardRecipient_);
 
         __AccessControlled_init(accessControlManager);
@@ -103,8 +102,6 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
 
         if (coreComptroller_ != address(0)) {
             coreComptroller = IComptroller(coreComptroller_);
-        } else {
-            coreComptroller = IComptroller(address(0));
         }
 
         // The owner of the beacon will initially be the owner of the factory
@@ -141,6 +138,7 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     /// @custom:error InvalidVToken if the vToken is invalid or unlisted
     /// @custom:event Emits VaultCreated event on successful deployment
     function createERC4626(address vToken) external returns (ERC4626Upgradeable vault) {
+        ensureNonzeroAddress(vToken);
         if (address(createdVaults[vToken]) != address(0)) revert VenusERC4626Factory__ERC4626AlreadyExists();
 
         bool isCore = _isCoreVToken(vToken);
