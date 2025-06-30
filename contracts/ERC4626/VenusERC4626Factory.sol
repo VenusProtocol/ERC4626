@@ -200,11 +200,8 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
             return false;
         }
 
-        try coreComptroller.markets(vToken) returns (bool listed, uint256) {
-            return listed;
-        } catch {
-            return false;
-        }
+        (bool listed, ) = coreComptroller.markets(vToken);
+        return listed;
     }
 
     /// @dev Deploys a new isolated pool vault
