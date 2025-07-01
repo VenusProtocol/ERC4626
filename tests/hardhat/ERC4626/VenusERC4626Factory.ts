@@ -51,6 +51,7 @@ describe("VenusERC4626Factory", () => {
     rewardRecipient = deployer.address;
 
     // Setup core pool
+    const xvsAddress = ethers.Wallet.createRandom().address;
     coreComptroller = await smock.fake<IComptroller>("contracts/ERC4626/Interfaces/IComptroller.sol:IComptroller");
     coreVToken.comptroller.returns(coreComptroller.address);
     coreVToken.underlying.returns(asset1.address);
@@ -67,7 +68,7 @@ describe("VenusERC4626Factory", () => {
 
     // Deploy implementations
     const VenusERC4626Core = await ethers.getContractFactory("VenusERC4626Core");
-    venusERC4626CoreImpl = await VenusERC4626Core.deploy();
+    venusERC4626CoreImpl = await VenusERC4626Core.deploy(xvsAddress);
 
     const VenusERC4626Isolated = await ethers.getContractFactory("VenusERC4626Isolated");
     venusERC4626IsolatedImpl = await VenusERC4626Isolated.deploy();

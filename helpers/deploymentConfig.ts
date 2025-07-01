@@ -59,6 +59,7 @@ export const preconfiguredAddresses = {
     AccessControlManager: Wallet.createRandom().address,
     PoolRegistry: Wallet.createRandom().address,
     CoreComptroller: Wallet.createRandom().address,
+    XVS: Wallet.createRandom().address,
   },
   bsctestnet: {
     NormalTimelock: governanceBscTestnet.NormalTimelock.address,

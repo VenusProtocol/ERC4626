@@ -19,6 +19,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const coreComptroller = await toAddress(preconfiguredAddresses.CoreComptroller || "CoreComptroller");
   const proxyOwnerAddress = await toAddress(preconfiguredAddresses.NormalTimelock || "account:deployer");
   const rewardRecipientAddress = await toAddress(preconfiguredAddresses.RewardRecipient || "account:deployer");
+  const xvsAddress = await toAddress(preconfiguredAddresses.XVS || "XVS");
 
   // Fetch the zk-compatible ProxyAdmin artifact
   const defaultProxyAdmin = await artifacts.readArtifact(
@@ -38,7 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const CoreImplementation: DeployResult = await deploy("CoreImplementation", {
     contract: "VenusERC4626Core",
     from: deployer,
-    args: [],
+    args: [xvsAddress],
     log: true,
     autoMine: true,
     skipIfAlreadyDeployed: true,
@@ -59,7 +60,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           IsolatedImplementation.address,
           CoreImplementation.address,
           poolRegistryAddress,
-          coreComptroller,
           rewardRecipientAddress,
           loopsLimit,
         ],
@@ -70,6 +70,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       },
       upgradeIndex: 0,
     },
+    args: [coreComptroller],
     autoMine: true,
     log: true,
     skipIfAlreadyDeployed: true,
