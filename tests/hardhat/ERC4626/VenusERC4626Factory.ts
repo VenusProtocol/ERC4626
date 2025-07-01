@@ -74,6 +74,7 @@ describe("VenusERC4626Factory", () => {
 
     // Deploy factory
     const Factory = await ethers.getContractFactory("VenusERC4626Factory");
+
     factory = await upgrades.deployProxy(
       Factory,
       [
@@ -81,11 +82,13 @@ describe("VenusERC4626Factory", () => {
         venusERC4626IsolatedImpl.address,
         venusERC4626CoreImpl.address,
         poolRegistry.address,
-        coreComptroller.address,
         rewardRecipient,
         100,
       ],
-      { initializer: "initialize" },
+      {
+        initializer: "initialize",
+        constructorArgs: [coreComptroller.address],
+      },
     );
 
     isolatedBeacon = await ethers.getContractAt("UpgradeableBeacon", await factory.isolatedBeacon());
@@ -93,10 +96,18 @@ describe("VenusERC4626Factory", () => {
   });
 
   describe("Initialization", () => {
+    it("should revert if coreComptroller is address(0) in constructor", async () => {
+      const Factory = await ethers.getContractFactory("VenusERC4626Factory");
+      await expect(Factory.deploy(constants.AddressZero)).to.be.revertedWithCustomError(
+        factory,
+        "ZeroAddressNotAllowed",
+      );
+    });
+
     it("should set correct initial values", async () => {
       expect(await factory.accessControlManager()).to.equal(accessControl.address);
       expect(await factory.poolRegistry()).to.equal(poolRegistry.address);
-      expect(await factory.coreComptroller()).to.equal(coreComptroller.address);
+      expect(await factory.CORE_COMPTROLLER()).to.equal(coreComptroller.address);
       expect(await factory.rewardRecipient()).to.equal(rewardRecipient);
     });
 
@@ -115,7 +126,7 @@ describe("VenusERC4626Factory", () => {
     it("should create core vault and emit event", async () => {
       const tx = await factory.createERC4626(coreVToken.address);
       const receipt = await tx.wait();
-      const event = receipt.events?.find(e => e.event === "VaultCreated");
+      const event = receipt.events?.find(e => e.event === "CreateERC4626");
 
       expect(event?.args?.vToken).to.equal(coreVToken.address);
       expect(event?.args?.isCore).to.be.true;
@@ -124,7 +135,7 @@ describe("VenusERC4626Factory", () => {
     it("should create isolated vault and emit event", async () => {
       const tx = await factory.createERC4626(isolatedVToken.address);
       const receipt = await tx.wait();
-      const event = receipt.events?.find(e => e.event === "VaultCreated");
+      const event = receipt.events?.find(e => e.event === "CreateERC4626");
 
       expect(event?.args?.vToken).to.equal(isolatedVToken.address);
       expect(event?.args?.isCore).to.be.false;
@@ -159,14 +170,14 @@ describe("VenusERC4626Factory", () => {
     it("should deploy core vault to predicted address", async () => {
       const predicted = await factory.computeVaultAddress(coreVToken.address);
       const tx = await factory.createERC4626(coreVToken.address);
-      const deployed = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
+      const deployed = (await tx.wait()).events?.find(e => e.event === "CreateERC4626")?.args?.vault;
       expect(deployed).to.equal(predicted);
     });
 
     it("should deploy isolated vault to predicted address", async () => {
       const predicted = await factory.computeVaultAddress(isolatedVToken.address);
       const tx = await factory.createERC4626(isolatedVToken.address);
-      const deployed = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
+      const deployed = (await tx.wait()).events?.find(e => e.event === "CreateERC4626")?.args?.vault;
       expect(deployed).to.equal(predicted);
     });
   });
@@ -201,7 +212,7 @@ describe("VenusERC4626Factory", () => {
   describe("Beacon Verification", () => {
     it("should use correct beacon for core vault", async () => {
       const tx = await factory.createERC4626(coreVToken.address);
-      const vaultAddress = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
+      const vaultAddress = (await tx.wait()).events?.find(e => e.event === "CreateERC4626")?.args?.vault;
 
       const beaconSlot = ethers.utils.hexlify(
         ethers.BigNumber.from(ethers.utils.keccak256(ethers.utils.toUtf8Bytes("eip1967.proxy.beacon"))).sub(1),
@@ -213,7 +224,7 @@ describe("VenusERC4626Factory", () => {
 
     it("should use correct beacon for isolated vault", async () => {
       const tx = await factory.createERC4626(isolatedVToken.address);
-      const vaultAddress = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
+      const vaultAddress = (await tx.wait()).events?.find(e => e.event === "CreateERC4626")?.args?.vault;
 
       const beaconSlot = ethers.utils.hexlify(
         ethers.BigNumber.from(ethers.utils.keccak256(ethers.utils.toUtf8Bytes("eip1967.proxy.beacon"))).sub(1),
@@ -227,7 +238,7 @@ describe("VenusERC4626Factory", () => {
   describe("Vault Initialization", () => {
     it("should initialize core vault with correct parameters", async () => {
       const tx = await factory.createERC4626(coreVToken.address);
-      const vaultAddress = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
+      const vaultAddress = (await tx.wait()).events?.find(e => e.event === "CreateERC4626")?.args?.vault;
       const vault = await ethers.getContractAt("VenusERC4626Core", vaultAddress);
 
       expect(await vault.owner()).to.equal(await factory.owner());
@@ -236,7 +247,7 @@ describe("VenusERC4626Factory", () => {
 
     it("should initialize isolated vault with correct parameters", async () => {
       const tx = await factory.createERC4626(isolatedVToken.address);
-      const vaultAddress = (await tx.wait()).events?.find(e => e.event === "VaultCreated")?.args?.vault;
+      const vaultAddress = (await tx.wait()).events?.find(e => e.event === "CreateERC4626")?.args?.vault;
       const vault = await ethers.getContractAt("VenusERC4626Isolated", vaultAddress);
 
       expect(await vault.owner()).to.equal(await factory.owner());

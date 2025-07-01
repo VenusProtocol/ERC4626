@@ -42,16 +42,17 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     UpgradeableBeacon public coreBeacon;
 
     /// @notice Comptroller for core pool validation
-    IComptroller public coreComptroller;
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IComptroller public immutable CORE_COMPTROLLER;
 
     /// @notice Mapping indicating whether a vault belongs to core pool
     mapping(address => bool) public isCoreVault;
 
     /// @notice Emitted when a new vault is created
-    /// @param vToken The address of the vToken for which the vault was created
-    /// @param vault The deployed ERC4626 vault address
-    /// @param isCore Whether the vault is for a core pool
-    event VaultCreated(address indexed vToken, address indexed vault, bool isCore);
+    /// @param vToken The address of the vToken for which the vault is created
+    /// @param vault The address of the newly created ERC4626 vault
+    /// @param isCore Indicates whether the vault is a core pool vault
+    event CreateERC4626(address indexed vToken, address indexed vault, bool isCore);
 
     /// @notice Emitted when the reward recipient address is updated
     /// @param oldRecipient The previous reward recipient address
@@ -66,7 +67,10 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
 
     /// @notice Constructor
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
+    constructor(address coreComptroller_) {
+        ensureNonzeroAddress(coreComptroller_);
+        CORE_COMPTROLLER = IComptroller(coreComptroller_);
+
         _disableInitializers();
     }
 
@@ -75,14 +79,12 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     /// @param isolatedImplementation Implementation address for isolated vaults
     /// @param coreImplementation Implementation address for core vaults
     /// @param poolRegistry_ Pool registry address
-    /// @param coreComptroller_ Core pool comptroller address
     /// @param rewardRecipient_ Initial reward recipient address
     function initialize(
         address accessControlManager,
         address isolatedImplementation,
         address coreImplementation,
         address poolRegistry_,
-        address coreComptroller_,
         address rewardRecipient_,
         uint256 loopsLimitNumber
     ) external initializer {
@@ -99,10 +101,6 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
 
         poolRegistry = PoolRegistryInterface(poolRegistry_);
         rewardRecipient = rewardRecipient_;
-
-        if (coreComptroller_ != address(0)) {
-            coreComptroller = IComptroller(coreComptroller_);
-        }
 
         // The owner of the beacon will initially be the owner of the factory
         isolatedBeacon.transferOwnership(owner());
@@ -136,7 +134,7 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     /// @return vault The deployed ERC4626 vault
     /// @custom:error VaultAlreadyExists if a vault already exists for the vToken
     /// @custom:error InvalidVToken if the vToken is invalid or unlisted
-    /// @custom:event Emits VaultCreated event on successful deployment
+    /// @custom:event CreateERC4626 is emitted when the ERC4626 wrapper is created
     function createERC4626(address vToken) external returns (ERC4626Upgradeable vault) {
         ensureNonzeroAddress(vToken);
         if (address(createdVaults[vToken]) != address(0)) revert VenusERC4626Factory__ERC4626AlreadyExists();
@@ -157,7 +155,7 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
         }
 
         createdVaults[vToken] = vault;
-        emit VaultCreated(vToken, address(vault), isCore);
+        emit CreateERC4626(vToken, address(vault), isCore);
     }
 
     /// @notice Computes the deterministic vault address for a given vToken
@@ -196,11 +194,7 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     /// @param vToken Address of the vToken to check
     /// @return True if the vToken is a core pool vToken, false otherwise
     function _isCoreVToken(address vToken) internal view returns (bool) {
-        if (address(coreComptroller) == address(0)) {
-            return false;
-        }
-
-        (bool listed, ) = coreComptroller.markets(vToken);
+        (bool listed, ) = CORE_COMPTROLLER.markets(vToken);
         return listed;
     }
 
