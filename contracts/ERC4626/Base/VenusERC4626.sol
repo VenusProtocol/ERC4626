@@ -33,6 +33,10 @@ abstract contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, Reentr
     /// @notice The recipient of rewards distributed by the Venus Protocol.
     address public rewardRecipient;
 
+    /// @dev This empty reserved space is put in place to allow future versions to add new
+    /// variables without shifting down storage in the inheritance chain.
+    uint256[47] private __gap;
+
     /// @notice Emitted when rewards are claimed.
     /// @param amount The amount of reward tokens claimed.
     /// @param rewardToken The address of the reward token claimed.
