@@ -52,6 +52,7 @@ describe("VenusERC4626Core", () => {
 
     venusERC4626Core = await upgrades.deployProxy(VenusERC4626Factory, [vToken.address], {
       initializer: "initialize",
+      constructorArgs: [xvs.address],
     });
 
     await venusERC4626Core.initialize2(accessControlManager.address, rewardRecipient, vaultOwner.address);
@@ -349,7 +350,6 @@ describe("VenusERC4626Core", () => {
 
     describe("When rewardRecipient is EOA", () => {
       it("should claim rewards and transfer to recipient", async () => {
-        comptroller.getXVSAddress.returns(xvs.address);
         xvs.balanceOf.whenCalledWith(venusERC4626Core.address).returns(rewardAmount);
         xvs.transfer.returns(true);
 
@@ -372,6 +372,7 @@ describe("VenusERC4626Core", () => {
         const VenusERC4626Factory = await ethers.getContractFactory("MockVenusERC4626Core");
         venusERC4626WithPSR = await upgrades.deployProxy(VenusERC4626Factory, [vToken.address], {
           initializer: "initialize",
+          constructorArgs: [xvs.address],
         });
 
         await venusERC4626WithPSR.initialize2(
@@ -380,7 +381,6 @@ describe("VenusERC4626Core", () => {
           vaultOwner.address,
         );
 
-        comptroller.getXVSAddress.returns(xvs.address);
         xvs.balanceOf.whenCalledWith(venusERC4626WithPSR.address).returns(rewardAmount);
         xvs.transfer.returns(true);
       });

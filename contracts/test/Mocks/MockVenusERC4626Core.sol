@@ -14,6 +14,11 @@ contract MockVenusERC4626Core is VenusERC4626Core {
     uint256 private mockMaxRedeem;
     uint256 private mockTotalSupply;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(address xvsAddress_) VenusERC4626Core(xvsAddress_) {
+        _disableInitializers();
+    }
+
     // Mock functions for testing
     function setTotalAssets(uint256 _totalAssets) external {
         mockTotalAssets = _totalAssets;
