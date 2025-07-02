@@ -38,7 +38,7 @@ contract VenusERC4626Isolated is VenusERC4626, MaxLoopsLimitHelper {
 
         _ensureMaxLoops(rewardDistributors.length);
 
-        for (uint256 i = 0; i < rewardDistributors.length; i++) {
+        for (uint256 i; i < rewardDistributors.length; i++) {
             RewardsDistributor rewardDistributor = rewardDistributors[i];
             IERC20Upgradeable rewardToken = IERC20Upgradeable(address(rewardDistributor.rewardToken()));
 

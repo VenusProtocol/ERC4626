@@ -75,29 +75,30 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     }
 
     /// @notice Initializes the factory contract
-    /// @param accessControlManager Access control manager address
-    /// @param isolatedImplementation Implementation address for isolated vaults
-    /// @param coreImplementation Implementation address for core vaults
+    /// @param accessControlManager_ Access control manager address
+    /// @param isolatedImplementation_ Implementation address for isolated vaults
+    /// @param coreImplementation_ Implementation address for core vaults
     /// @param poolRegistry_ Pool registry address
     /// @param rewardRecipient_ Initial reward recipient address
+    /// @param loopsLimitNumber_ Maximum number of loops
     function initialize(
-        address accessControlManager,
-        address isolatedImplementation,
-        address coreImplementation,
+        address accessControlManager_,
+        address isolatedImplementation_,
+        address coreImplementation_,
         address poolRegistry_,
         address rewardRecipient_,
-        uint256 loopsLimitNumber
+        uint256 loopsLimitNumber_
     ) external initializer {
-        ensureNonzeroAddress(isolatedImplementation);
-        ensureNonzeroAddress(coreImplementation);
+        ensureNonzeroAddress(isolatedImplementation_);
+        ensureNonzeroAddress(coreImplementation_);
         ensureNonzeroAddress(poolRegistry_);
         ensureNonzeroAddress(rewardRecipient_);
 
-        __AccessControlled_init(accessControlManager);
-        _setMaxLoopsLimit(loopsLimitNumber);
+        __AccessControlled_init(accessControlManager_);
+        _setMaxLoopsLimit(loopsLimitNumber_);
 
-        isolatedBeacon = new UpgradeableBeacon(isolatedImplementation);
-        coreBeacon = new UpgradeableBeacon(coreImplementation);
+        isolatedBeacon = new UpgradeableBeacon(isolatedImplementation_);
+        coreBeacon = new UpgradeableBeacon(coreImplementation_);
 
         poolRegistry = PoolRegistryInterface(poolRegistry_);
         rewardRecipient = rewardRecipient_;
