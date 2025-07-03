@@ -20,6 +20,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const proxyOwnerAddress = await toAddress(preconfiguredAddresses.NormalTimelock || "account:deployer");
   const rewardRecipientAddress = await toAddress(preconfiguredAddresses.RewardRecipient || "account:deployer");
   const xvsAddress = await toAddress(preconfiguredAddresses.XVS || "XVS");
+  const vBNB = await toAddress(preconfiguredAddresses.VBNB || "VBNB");
 
   // Fetch the zk-compatible ProxyAdmin artifact
   const defaultProxyAdmin = await artifacts.readArtifact(
@@ -70,7 +71,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       },
       upgradeIndex: 0,
     },
-    args: [coreComptroller],
+    args: [coreComptroller, vBNB],
     autoMine: true,
     log: true,
     skipIfAlreadyDeployed: true,

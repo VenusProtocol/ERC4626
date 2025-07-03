@@ -31,6 +31,7 @@ describe("VenusERC4626Factory", () => {
   let coreVToken: FakeContract<CoreVToken>;
   let isolatedVToken: FakeContract<IsolatedVToken>;
   let invalidVToken: FakeContract<CoreVToken>;
+  let vBNB: FakeContract<CoreVToken>;
   let coreComptroller: FakeContract<IComptroller>;
   let poolRegistry: FakeContract<PoolRegistryInterface>;
   let accessControl: FakeContract<IAccessControlManagerV8>;
@@ -45,6 +46,7 @@ describe("VenusERC4626Factory", () => {
     asset1 = await smock.fake("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
     asset2 = await smock.fake("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
     coreVToken = await smock.fake("@venusprotocol/venus-protocol/contracts/Tokens/VTokens/VToken.sol:VToken");
+    vBNB = await smock.fake("@venusprotocol/venus-protocol/contracts/Tokens/VTokens/VToken.sol:VToken");
     isolatedVToken = await smock.fake("@venusprotocol/isolated-pools/contracts/VToken.sol:VToken");
     invalidVToken = await smock.fake("@venusprotocol/venus-protocol/contracts/Tokens/VTokens/VToken.sol:VToken");
     accessControl = await smock.fake("IAccessControlManagerV8");
@@ -88,7 +90,7 @@ describe("VenusERC4626Factory", () => {
       ],
       {
         initializer: "initialize",
-        constructorArgs: [coreComptroller.address],
+        constructorArgs: [coreComptroller.address, vBNB.address],
       },
     );
 
@@ -97,14 +99,6 @@ describe("VenusERC4626Factory", () => {
   });
 
   describe("Initialization", () => {
-    it("should revert if coreComptroller is address(0) in constructor", async () => {
-      const Factory = await ethers.getContractFactory("VenusERC4626Factory");
-      await expect(Factory.deploy(constants.AddressZero)).to.be.revertedWithCustomError(
-        factory,
-        "ZeroAddressNotAllowed",
-      );
-    });
-
     it("should set correct initial values", async () => {
       expect(await factory.accessControlManager()).to.equal(accessControl.address);
       expect(await factory.poolRegistry()).to.equal(poolRegistry.address);
@@ -140,6 +134,13 @@ describe("VenusERC4626Factory", () => {
 
       expect(event?.args?.vToken).to.equal(isolatedVToken.address);
       expect(event?.args?.isCore).to.be.false;
+    });
+
+    it("should revert for vBNB vToken", async () => {
+      await expect(factory.createERC4626(vBNB.address)).to.be.revertedWithCustomError(
+        factory,
+        "VenusERC4626Factory__InvalidVToken",
+      );
     });
 
     it("should revert for invalid core vToken", async () => {

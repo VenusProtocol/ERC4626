@@ -25,6 +25,14 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     /// @notice Salt used to deterministically deploy core pool vaults
     bytes32 public constant CORE_SALT = keccak256("Venus-Core-ERC4626");
 
+    /// @notice Comptroller for core pool validation
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IComptroller public immutable CORE_COMPTROLLER;
+
+    /// @notice Address of the VBNB token
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address public immutable VBNB;
+
     /// @notice Beacon for isolated vaults
     /// @dev Previously named `beacon`
     UpgradeableBeacon public isolatedBeacon;
@@ -40,10 +48,6 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
 
     /// @notice Beacon for core vaults
     UpgradeableBeacon public coreBeacon;
-
-    /// @notice Comptroller for core pool validation
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    IComptroller public immutable CORE_COMPTROLLER;
 
     /// @notice Mapping indicating whether a vault belongs to core pool
     mapping(address => bool) public isCoreVault;
@@ -66,10 +70,17 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     error VenusERC4626Factory__ERC4626AlreadyExists();
 
     /// @notice Constructor
+    /// @param coreComptroller_ Address of the core comptroller
+    /// @param vBNB_ Address of the VBNB token
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address coreComptroller_) {
-        ensureNonzeroAddress(coreComptroller_);
-        CORE_COMPTROLLER = IComptroller(coreComptroller_);
+    constructor(address coreComptroller_, address vBNB_) {
+        if (coreComptroller_ != address(0)) {
+            CORE_COMPTROLLER = IComptroller(coreComptroller_);
+        }
+
+        if (vBNB_ != address(0)) {
+            VBNB = vBNB_;
+        }
 
         _disableInitializers();
     }
@@ -138,6 +149,11 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     /// @custom:event CreateERC4626 is emitted when the ERC4626 wrapper is created
     function createERC4626(address vToken) external returns (ERC4626Upgradeable vault) {
         ensureNonzeroAddress(vToken);
+
+        if (VBNB != address(0) && vToken == VBNB) {
+            revert VenusERC4626Factory__InvalidVToken();
+        }
+
         if (address(createdVaults[vToken]) != address(0)) revert VenusERC4626Factory__ERC4626AlreadyExists();
 
         bool isCore = _isCoreVToken(vToken);
