@@ -5,23 +5,19 @@ import { ERC4626Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ER
 import { SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { MathUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 
-import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
-import { RewardsDistributor } from "@venusprotocol/isolated-pools/contracts/Rewards/RewardsDistributor.sol";
-import { MaxLoopsLimitHelper } from "@venusprotocol/isolated-pools/contracts/MaxLoopsLimitHelper.sol";
-import { IComptroller } from "./Interfaces/IComptroller.sol";
-import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
+import { IComptroller, Action } from "../Interfaces/IComptroller.sol";
+import { VTokenInterface } from "../Interfaces/VTokenInterface.sol";
 
-import { Action } from "@venusprotocol/isolated-pools/contracts/ComptrollerInterface.sol";
-import { EXP_SCALE } from "@venusprotocol/isolated-pools/contracts/lib/constants.sol";
-import { VToken } from "@venusprotocol/isolated-pools/contracts/VToken.sol";
+uint256 constant EXP_SCALE = 1e18;
 
 /// @title VenusERC4626
-/// @notice ERC4626 wrapper for Venus vTokens, enabling standard ERC4626 vault interactions with Venus Protocol.
-contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHelper, ReentrancyGuardUpgradeable {
+/// @notice Abstract ERC4626 wrapper for Venus vTokens, enabling standard ERC4626 vault interactions with Venus Protocol.
+abstract contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, ReentrancyGuardUpgradeable {
     using MathUpgradeable for uint256;
     using SafeERC20Upgradeable for ERC20Upgradeable;
 
@@ -29,13 +25,17 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
     uint256 internal constant NO_ERROR = 0;
 
     /// @notice The Venus vToken associated with this ERC4626 vault.
-    VToken public vToken;
+    VTokenInterface public vToken;
 
     /// @notice The Venus Comptroller contract, responsible for market operations.
     IComptroller public comptroller;
 
     /// @notice The recipient of rewards distributed by the Venus Protocol.
     address public rewardRecipient;
+
+    /// @dev This empty reserved space is put in place to allow future versions to add new
+    /// variables without shifting down storage in the inheritance chain.
+    uint256[47] private __gap;
 
     /// @notice Emitted when rewards are claimed.
     /// @param amount The amount of reward tokens claimed.
@@ -86,10 +86,10 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
     /// @notice Initializes the VenusERC4626 vault, only with the VToken address associated to the vault
     /// @dev `initialize2` should be invoked to complete the configuration of the vault
     /// @param vToken_ The VToken associated with the vault, representing the yield-bearing asset.
-    function initialize(address vToken_) public initializer {
+    function initialize(address vToken_) public virtual initializer {
         ensureNonzeroAddress(vToken_);
 
-        vToken = VToken(vToken_);
+        vToken = VTokenInterface(vToken_);
         comptroller = IComptroller(address(vToken.comptroller()));
         ERC20Upgradeable asset = ERC20Upgradeable(vToken.underlying());
 
@@ -98,21 +98,10 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
         __ReentrancyGuard_init();
     }
 
-    /**
-     * @notice Set the limit for the loops can iterate to avoid the DOS
-     * @param loopsLimit Number of loops limit
-     * @custom:event Emits MaxLoopsLimitUpdated event on success
-     * @custom:access Controlled by ACM
-     */
-    function setMaxLoopsLimit(uint256 loopsLimit) external {
-        _checkAccessAllowed("setMaxLoopsLimit(uint256)");
-        _setMaxLoopsLimit(loopsLimit);
-    }
-
     /// @notice Sets a new reward recipient address
     /// @param newRecipient The address of the new reward recipient
     /// @custom:access Controlled by ACM
-    function setRewardRecipient(address newRecipient) external {
+    function setRewardRecipient(address newRecipient) external virtual {
         _checkAccessAllowed("setRewardRecipient(address)");
         _setRewardRecipient(newRecipient);
     }
@@ -121,7 +110,7 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
     /// @param token Address of the token
     /// @custom:event SweepToken emits on success
     /// @custom:access Only owner
-    function sweepToken(IERC20Upgradeable token) external onlyOwner {
+    function sweepToken(IERC20Upgradeable token) external virtual onlyOwner {
         uint256 balance = token.balanceOf(address(this));
 
         if (balance > 0) {
@@ -131,64 +120,28 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
         }
     }
 
-    /// @notice Claims rewards from all reward distributors associated with the VToken and transfers them to the reward recipient.
-    /// @dev Iterates through all reward distributors fetched from the comptroller, claims rewards, and transfers them if available.
-    function claimRewards() external {
-        IComptroller _comptroller = comptroller;
-        VToken _vToken = vToken;
-        address _rewardRecipient = rewardRecipient;
-
-        RewardsDistributor[] memory rewardDistributors = _comptroller.getRewardDistributors();
-
-        _ensureMaxLoops(rewardDistributors.length);
-
-        for (uint256 i = 0; i < rewardDistributors.length; i++) {
-            RewardsDistributor rewardDistributor = rewardDistributors[i];
-            IERC20Upgradeable rewardToken = IERC20Upgradeable(address(rewardDistributor.rewardToken()));
-
-            VToken[] memory vTokens = new VToken[](1);
-            vTokens[0] = _vToken;
-            RewardsDistributor(rewardDistributor).claimRewardToken(address(this), vTokens);
-            uint256 rewardBalance = rewardToken.balanceOf(address(this));
-
-            if (rewardBalance > 0) {
-                SafeERC20Upgradeable.safeTransfer(rewardToken, _rewardRecipient, rewardBalance);
-
-                // Try to update the asset state on the recipient if reward recipient is a protocol share reserve
-                // reward recipient cannot be an EOA
-                try
-                    IProtocolShareReserve(_rewardRecipient).updateAssetsState(
-                        address(_comptroller),
-                        address(rewardToken),
-                        IProtocolShareReserve.IncomeType.ERC4626_WRAPPER_REWARDS
-                    )
-                {} catch {}
-            }
-            emit ClaimRewards(rewardBalance, address(rewardToken));
-        }
-    }
+    /// @notice Claims rewards from the Venus protocol
+    /// @dev Must be implemented by child contracts
+    function claimRewards() external virtual;
 
     /// @notice Second function to invoke to complete the configuration of the vault, setting the rest of the attributes
     /// @param accessControlManager_ Address of the ACM contract
     /// @param rewardRecipient_ The address that will receive rewards generated by the vault.
-    /// @param loopsLimit_ The maximum number of loops allowed for reward distribution.
     /// @param vaultOwner_ The owner that will be set for the created vault
     function initialize2(
         address accessControlManager_,
         address rewardRecipient_,
-        uint256 loopsLimit_,
         address vaultOwner_
-    ) public reinitializer(2) {
+    ) public virtual reinitializer(2) {
         ensureNonzeroAddress(vaultOwner_);
 
         __AccessControlled_init(accessControlManager_);
-        _setMaxLoopsLimit(loopsLimit_);
         _setRewardRecipient(rewardRecipient_);
         _transferOwnership(vaultOwner_);
     }
 
     /// @inheritdoc ERC4626Upgradeable
-    function deposit(uint256 assets, address receiver) public override nonReentrant returns (uint256) {
+    function deposit(uint256 assets, address receiver) public virtual override nonReentrant returns (uint256) {
         ensureNonzeroAddress(receiver);
 
         vToken.accrueInterest();
@@ -214,7 +167,7 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
     /// @dev The minted shares are calculated considering the minted VTokens
     /// @dev It can mint slightly fewer shares than requested, because VToken.mint rounds down
     /// @inheritdoc ERC4626Upgradeable
-    function mint(uint256 shares, address receiver) public override nonReentrant returns (uint256) {
+    function mint(uint256 shares, address receiver) public virtual override nonReentrant returns (uint256) {
         ensureNonzeroAddress(receiver);
 
         vToken.accrueInterest();
@@ -224,6 +177,7 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
         if (shares > maxMint(receiver)) {
             revert ERC4626__MintMoreThanMax();
         }
+
         uint256 assets = previewMint(shares);
         if (assets == 0) {
             revert ERC4626__ZeroAmount("mint");
@@ -235,7 +189,11 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
     /// @dev Receiver can receive slightly more assets than requested, because VToken.redeemUnderlying rounds up
     /// @dev The shares to burn are calculated considering the actual transferred assets, not the requested ones
     /// @inheritdoc ERC4626Upgradeable
-    function withdraw(uint256 assets, address receiver, address owner) public override nonReentrant returns (uint256) {
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public virtual override nonReentrant returns (uint256) {
         ensureNonzeroAddress(receiver);
         ensureNonzeroAddress(owner);
 
@@ -254,7 +212,11 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
     }
 
     /// @inheritdoc ERC4626Upgradeable
-    function redeem(uint256 shares, address receiver, address owner) public override nonReentrant returns (uint256) {
+    function redeem(
+        uint256 shares,
+        address receiver,
+        address owner
+    ) public virtual override nonReentrant returns (uint256) {
         ensureNonzeroAddress(receiver);
         ensureNonzeroAddress(owner);
 
@@ -349,7 +311,7 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
     /// @dev Calls `redeem` on the vToken contract. Reverts on error.
     /// @param shares The amount of shares to redeem.
     /// @return The amount of assets transferred in
-    function _beforeRedeem(uint256 shares) internal returns (uint256) {
+    function _beforeRedeem(uint256 shares) internal virtual returns (uint256) {
         IERC20Upgradeable token = IERC20Upgradeable(asset());
         uint256 balanceBefore = token.balanceOf(address(this));
 
@@ -377,7 +339,7 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
     /// @return actualAssets The amount of assets transferred in
     /// @return actualShares The shares equivalent to `actualAssets`, to be burned, rounded up
     /// @custom:error ERC4626__ZeroAmount is thrown when the redeemed VTokens are zero
-    function _beforeWithdraw(uint256 assets) internal returns (uint256 actualAssets, uint256 actualShares) {
+    function _beforeWithdraw(uint256 assets) internal virtual returns (uint256 actualAssets, uint256 actualShares) {
         IERC20Upgradeable token = IERC20Upgradeable(asset());
         uint256 balanceBefore = token.balanceOf(address(this));
         uint256 vTokenBalanceBefore = vToken.balanceOf(address(this));
@@ -394,6 +356,7 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
         if (actualVTokens == 0) {
             revert ERC4626__ZeroAmount("actualVTokens at _beforeWithdraw");
         }
+
         // Return the shares equivalent to the burned vTokens
         actualShares = actualVTokens.mulDiv(
             totalSupply() + 10 ** _decimalsOffset(),
@@ -405,7 +368,7 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
     /// @notice Mints vTokens after depositing assets.
     /// @dev Calls `mint` on the vToken contract. Reverts on error.
     /// @param assets The amount of underlying assets to deposit.
-    function _mintVTokens(uint256 assets) internal {
+    function _mintVTokens(uint256 assets) internal virtual {
         ERC20Upgradeable(asset()).safeApprove(address(vToken), assets);
         uint256 errorCode = vToken.mint(assets);
         if (errorCode != NO_ERROR) {
@@ -417,7 +380,7 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
     /// @param newRecipient The address of the new reward recipient
     /// @custom:error ZeroAddressNotAllowed is thrown when the new recipient address is zero
     /// @custom:event RewardRecipientUpdated is emitted when the reward recipient address is updated
-    function _setRewardRecipient(address newRecipient) internal {
+    function _setRewardRecipient(address newRecipient) internal virtual {
         ensureNonzeroAddress(newRecipient);
 
         emit RewardRecipientUpdated(rewardRecipient, newRecipient);
@@ -472,14 +435,14 @@ contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, MaxLoopsLimitHe
     /// @notice Generates and returns the derived name of the vault considering the asset name
     /// @param asset_ Asset to be accepted in the vault whose name this function will return
     /// @return Name of the vault considering the asset name
-    function _generateVaultName(ERC20Upgradeable asset_) internal view returns (string memory) {
+    function _generateVaultName(ERC20Upgradeable asset_) internal view virtual returns (string memory) {
         return string(abi.encodePacked("ERC4626-Wrapped Venus ", asset_.name()));
     }
 
     /// @notice Generates and returns the derived symbol of the vault considering the asset symbol
     /// @param asset_ Asset to be accepted in the vault whose symbol this function will return
     /// @return Symbol of the vault considering the asset name
-    function _generateVaultSymbol(ERC20Upgradeable asset_) internal view returns (string memory) {
+    function _generateVaultSymbol(ERC20Upgradeable asset_) internal view virtual returns (string memory) {
         return string(abi.encodePacked("v4626", asset_.symbol()));
     }
 }

@@ -1,33 +1,30 @@
 import { FakeContract, smock } from "@defi-wonderland/smock";
 import chai from "chai";
-import { BigNumber } from "ethers";
 import { ethers, upgrades } from "hardhat";
 import { SignerWithAddress } from "hardhat-deploy-ethers/signers";
 
 import {
-  AccessControlManager,
+  AccessControlManagerMock,
   ERC20,
   IComptroller,
   IProtocolShareReserve,
-  IRewardsDistributor,
-  MockVenusERC4626,
-  VToken,
+  MockVenusERC4626Core,
+  VBep20Immutable,
 } from "../../../typechain";
 
 const { expect } = chai;
 chai.use(smock.matchers);
 
-describe("VenusERC4626", () => {
+describe("VenusERC4626Core", () => {
   let deployer: SignerWithAddress;
   let user: SignerWithAddress;
   let vaultOwner: SignerWithAddress;
-  let venusERC4626: MockVenusERC4626;
+  let venusERC4626Core: MockVenusERC4626Core;
   let asset: FakeContract<ERC20>;
   let xvs: FakeContract<ERC20>;
-  let vToken: FakeContract<VToken>;
+  let vToken: FakeContract<VBep20Immutable>;
   let comptroller: FakeContract<IComptroller>;
-  let accessControlManager: FakeContract<AccessControlManager>;
-  let rewardDistributor: FakeContract<IRewardsDistributor>;
+  let accessControlManager: FakeContract<AccessControlManagerMock>;
   let rewardRecipient: string;
   let rewardRecipientPSR: FakeContract<IProtocolShareReserve>;
 
@@ -37,10 +34,9 @@ describe("VenusERC4626", () => {
     // Create Smock Fake Contracts
     asset = await smock.fake<ERC20>("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
     xvs = await smock.fake<ERC20>("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
-    vToken = await smock.fake<VToken>("@venusprotocol/isolated-pools/contracts/VToken.sol:VToken");
+    vToken = await smock.fake<VBep20Immutable>("contracts/test/VBep20Immutable.sol:VBep20Immutable");
     comptroller = await smock.fake<IComptroller>("contracts/ERC4626/Interfaces/IComptroller.sol:IComptroller");
-    accessControlManager = await smock.fake("AccessControlManager");
-    rewardDistributor = await smock.fake<IRewardsDistributor>("IRewardsDistributor");
+    accessControlManager = await smock.fake("AccessControlManagerMock");
     rewardRecipient = deployer.address;
     rewardRecipientPSR = await smock.fake<IProtocolShareReserve>(
       "contracts/ERC4626/Interfaces/IProtocolShareReserve.sol:IProtocolShareReserve",
@@ -52,45 +48,39 @@ describe("VenusERC4626", () => {
     vToken.comptroller.returns(comptroller.address);
 
     // Deploy and initialize MockVenusERC4626
-    const VenusERC4626Factory = await ethers.getContractFactory("MockVenusERC4626");
+    const VenusERC4626Factory = await ethers.getContractFactory("MockVenusERC4626Core");
 
-    venusERC4626 = await upgrades.deployProxy(VenusERC4626Factory, [vToken.address], {
+    venusERC4626Core = await upgrades.deployProxy(VenusERC4626Factory, [vToken.address], {
       initializer: "initialize",
+      constructorArgs: [xvs.address],
     });
-    await venusERC4626.initialize2(accessControlManager.address, rewardRecipient, 100, vaultOwner.address);
+
+    await venusERC4626Core.initialize2(accessControlManager.address, rewardRecipient, vaultOwner.address);
   });
 
   describe("Initialization", () => {
     it("should deploy with correct parameters", async () => {
-      expect(venusERC4626.address).to.not.equal(ethers.constants.AddressZero);
-      expect(await venusERC4626.asset()).to.equal(asset.address);
-      expect(await venusERC4626.vToken()).to.equal(vToken.address);
-      expect(await venusERC4626.comptroller()).to.equal(comptroller.address);
-      expect(await venusERC4626.rewardRecipient()).to.equal(rewardRecipient);
-      expect(await venusERC4626.accessControlManager()).to.equal(accessControlManager.address);
-      expect(await venusERC4626.owner()).to.equal(vaultOwner.address);
+      expect(venusERC4626Core.address).to.not.equal(ethers.constants.AddressZero);
+      expect(await venusERC4626Core.asset()).to.equal(asset.address);
+      expect(await venusERC4626Core.vToken()).to.equal(vToken.address);
+      expect(await venusERC4626Core.comptroller()).to.equal(comptroller.address);
+      expect(await venusERC4626Core.rewardRecipient()).to.equal(rewardRecipient);
+      expect(await venusERC4626Core.accessControlManager()).to.equal(accessControlManager.address);
+      expect(await venusERC4626Core.owner()).to.equal(vaultOwner.address);
     });
   });
 
   describe("Access Control", () => {
     it("should allow authorized accounts to update reward recipient", async () => {
       const newRecipient = ethers.Wallet.createRandom().address;
-      await expect(venusERC4626.setRewardRecipient(newRecipient))
-        .to.emit(venusERC4626, "RewardRecipientUpdated")
+      await expect(venusERC4626Core.setRewardRecipient(newRecipient))
+        .to.emit(venusERC4626Core, "RewardRecipientUpdated")
         .withArgs(rewardRecipient, newRecipient);
-    });
-
-    it("should allow authorized accounts to update maxLoopsLimit", async () => {
-      const maxLoopsLimit = await venusERC4626.maxLoopsLimit();
-      const newMaxLoopLimit = maxLoopsLimit.add(10);
-      await expect(venusERC4626.setMaxLoopsLimit(newMaxLoopLimit))
-        .to.emit(venusERC4626, "MaxLoopsLimitUpdated")
-        .withArgs(maxLoopsLimit, newMaxLoopLimit);
     });
   });
 
   describe("Mint Operations", () => {
-    const mintShares = ethers.utils.parseUnits("10", 18);
+    const mintShares = ethers.utils.parseEther("10");
     let expectedAssets: ethers.BigNumber;
 
     beforeEach(async () => {
@@ -99,12 +89,12 @@ describe("VenusERC4626", () => {
       vToken.mint.returns(0); // NO_ERROR
       vToken.exchangeRateStored.returns(ethers.utils.parseUnits("1.0001", 18));
 
-      await venusERC4626.setMaxDeposit(ethers.utils.parseUnits("100", 18)); // Sets max assets
-      await venusERC4626.setMaxMint(ethers.utils.parseUnits("100", 18)); // Sets max shares
-      await venusERC4626.setTotalSupply(ethers.utils.parseUnits("100", 18)); // sets total supply
-      await venusERC4626.setTotalAssets(ethers.utils.parseUnits("100", 18)); // sets total assets
+      await venusERC4626Core.setMaxDeposit(ethers.utils.parseUnits("100", 18)); // Sets max assets
+      await venusERC4626Core.setMaxMint(ethers.utils.parseUnits("100", 18)); // Sets max shares
+      await venusERC4626Core.setTotalSupply(ethers.utils.parseUnits("100", 18)); // sets total supply
+      await venusERC4626Core.setTotalAssets(ethers.utils.parseUnits("100", 18)); // sets total assets
 
-      expectedAssets = await venusERC4626.previewMint(mintShares);
+      expectedAssets = await venusERC4626Core.previewMint(mintShares);
 
       asset.balanceOf.returnsAtCall(0, ethers.BigNumber.from(0));
       asset.balanceOf.returnsAtCall(1, expectedAssets);
@@ -113,8 +103,8 @@ describe("VenusERC4626", () => {
       vToken.balanceOf.returnsAtCall(1, expectedAssets);
     });
 
-    it("should mint shares successfully with proper vToken accounting", async () => {
-      const tx = await venusERC4626.connect(user).mint(mintShares, user.address);
+    it("should mint shares successfully", async () => {
+      const tx = await venusERC4626Core.connect(user).mint(mintShares, user.address);
 
       const receipt = await tx.wait();
       const depositEvent = receipt.events?.find(e => e.event === "Deposit");
@@ -127,30 +117,30 @@ describe("VenusERC4626", () => {
 
       expect(vToken.mint).to.have.been.calledWith(actualAssets);
 
-      expect(await venusERC4626.balanceOf(user.address)).to.equal(actualShares);
+      expect(await venusERC4626Core.balanceOf(user.address)).to.equal(actualShares);
     });
 
     it("should return correct assets amount", async () => {
-      const returnedAssets = await venusERC4626.connect(user).callStatic.mint(mintShares, user.address);
+      const returnedAssets = await venusERC4626Core.connect(user).callStatic.mint(mintShares, user.address);
       expect(returnedAssets).to.equal(expectedAssets);
     });
 
     it("should revert if vToken mint fails", async () => {
       vToken.mint.returns(1); // Error code 1
-      await expect(venusERC4626.connect(user).mint(mintShares, user.address)).to.be.revertedWithCustomError(
-        venusERC4626,
+      await expect(venusERC4626Core.connect(user).mint(mintShares, user.address)).to.be.revertedWithCustomError(
+        venusERC4626Core,
         "VenusERC4626__VenusError",
       );
     });
 
     it("should fail mint with no approval", async () => {
       asset.transferFrom.returns(false);
-      await expect(venusERC4626.connect(user).mint(mintShares, user.address)).to.be.reverted;
+      await expect(venusERC4626Core.connect(user).mint(mintShares, user.address)).to.be.reverted;
     });
 
     it("should fail mint zero shares", async () => {
-      await expect(venusERC4626.connect(user).mint(0, user.address))
-        .to.be.revertedWithCustomError(venusERC4626, "ERC4626__ZeroAmount")
+      await expect(venusERC4626Core.connect(user).mint(0, user.address))
+        .to.be.revertedWithCustomError(venusERC4626Core, "ERC4626__ZeroAmount")
         .withArgs("mint");
     });
   });
@@ -172,16 +162,16 @@ describe("VenusERC4626", () => {
       vToken.mint.returns(0); // NO_ERROR
       vToken.exchangeRateStored.returns(ethers.utils.parseUnits("1.0001", 18));
 
-      await venusERC4626.setMaxDeposit(ethers.utils.parseEther("100")); // sets max deposit allowed
-      await venusERC4626.setTotalSupply(ethers.utils.parseUnits("100", 18)); // sets total supply
-      await venusERC4626.setTotalAssets(ethers.utils.parseUnits("100", 18)); // sets total assets
+      await venusERC4626Core.setMaxDeposit(ethers.utils.parseEther("100")); // sets max deposit allowed
+      await venusERC4626Core.setTotalSupply(ethers.utils.parseUnits("100", 18)); // sets total supply
+      await venusERC4626Core.setTotalAssets(ethers.utils.parseUnits("100", 18)); // sets total assets
     });
 
     it("should deposit assets successfully", async () => {
       // Calculate shares using previewDeposit
-      expectedShares = await venusERC4626.previewDeposit(depositAmount);
+      expectedShares = await venusERC4626Core.previewDeposit(depositAmount);
 
-      const tx = await venusERC4626.connect(user).deposit(depositAmount, user.address);
+      const tx = await venusERC4626Core.connect(user).deposit(depositAmount, user.address);
 
       const receipt = await tx.wait();
       const depositEvent = receipt.events?.find(e => e.event === "Deposit");
@@ -193,24 +183,24 @@ describe("VenusERC4626", () => {
       expect(actualShares).to.be.gte(expectedShares);
 
       expect(vToken.mint).to.have.been.calledWith(depositAmount);
-      expect(await venusERC4626.balanceOf(user.address)).to.be.gte(expectedShares);
+      expect(await venusERC4626Core.balanceOf(user.address)).to.be.gte(expectedShares);
     });
 
     it("should revert if vToken mint fails", async () => {
       vToken.mint.returns(1); // Error code 1
       await expect(
-        venusERC4626.connect(user).deposit(ethers.utils.parseEther("50"), user.address),
-      ).to.be.revertedWithCustomError(venusERC4626, "VenusERC4626__VenusError");
+        venusERC4626Core.connect(user).deposit(ethers.utils.parseEther("50"), user.address),
+      ).to.be.revertedWithCustomError(venusERC4626Core, "VenusERC4626__VenusError");
     });
 
     it("should fail deposit with no approval", async () => {
       asset.transferFrom.returns(false);
-      await expect(venusERC4626.connect(user).deposit(ethers.utils.parseEther("1"), user.address)).to.be.reverted;
+      await expect(venusERC4626Core.connect(user).deposit(ethers.utils.parseEther("1"), user.address)).to.be.reverted;
     });
 
     it("should fail deposit zero amount", async () => {
-      await expect(venusERC4626.connect(user).deposit(0, user.address))
-        .to.be.revertedWithCustomError(venusERC4626, "ERC4626__ZeroAmount")
+      await expect(venusERC4626Core.connect(user).deposit(0, user.address))
+        .to.be.revertedWithCustomError(venusERC4626Core, "ERC4626__ZeroAmount")
         .withArgs("deposit");
     });
   });
@@ -218,7 +208,7 @@ describe("VenusERC4626", () => {
   describe("Withdraw Operations", () => {
     const depositAmount = ethers.utils.parseEther("10");
     const withdrawAmount = ethers.utils.parseEther("5");
-    let expectedShares: BigNumber;
+    let expectedShares: ethers.BigNumber;
 
     beforeEach(async () => {
       asset.transferFrom.returns(true);
@@ -239,18 +229,18 @@ describe("VenusERC4626", () => {
       vToken.balanceOf.returnsAtCall(2, ethers.utils.parseUnits("110", 18));
       vToken.balanceOf.returnsAtCall(3, ethers.utils.parseUnits("105", 18));
 
-      await venusERC4626.setMaxDeposit(ethers.utils.parseEther("50"));
-      await venusERC4626.setTotalSupply(ethers.utils.parseUnits("100", 18)); // sets total supply
-      await venusERC4626.setTotalAssets(ethers.utils.parseUnits("100", 18)); // sets total assets
-      await venusERC4626.connect(user).deposit(depositAmount, user.address);
-      await venusERC4626.setMaxWithdraw(ethers.utils.parseEther("15"));
-      await venusERC4626.setTotalAssets(ethers.utils.parseUnits("110", 18)); // sets total assets
+      await venusERC4626Core.setMaxDeposit(ethers.utils.parseEther("50"));
+      await venusERC4626Core.setTotalSupply(ethers.utils.parseUnits("100", 18)); // sets total supply
+      await venusERC4626Core.setTotalAssets(ethers.utils.parseUnits("100", 18)); // sets total assets
+      await venusERC4626Core.connect(user).deposit(depositAmount, user.address);
+      await venusERC4626Core.setMaxWithdraw(ethers.utils.parseEther("15"));
+      await venusERC4626Core.setTotalAssets(ethers.utils.parseUnits("110", 18)); // sets total assets
     });
 
     it("should withdraw assets successfully", async () => {
-      expectedShares = await venusERC4626.previewWithdraw(withdrawAmount);
+      expectedShares = await venusERC4626Core.previewWithdraw(withdrawAmount);
 
-      const tx = await venusERC4626.connect(user).withdraw(withdrawAmount, user.address, user.address);
+      const tx = await venusERC4626Core.connect(user).withdraw(withdrawAmount, user.address, user.address);
 
       const receipt = await tx.wait();
       const withdrawEvent = receipt.events?.find(e => e.event === "Withdraw");
@@ -268,20 +258,20 @@ describe("VenusERC4626", () => {
     it("should revert if vToken redeemUnderlying fails", async () => {
       vToken.redeemUnderlying.returns(1); // Error code 1
       await expect(
-        venusERC4626.connect(user).withdraw(withdrawAmount, user.address, user.address),
-      ).to.be.revertedWithCustomError(venusERC4626, "VenusERC4626__VenusError");
+        venusERC4626Core.connect(user).withdraw(withdrawAmount, user.address, user.address),
+      ).to.be.revertedWithCustomError(venusERC4626Core, "VenusERC4626__VenusError");
     });
 
     it("should fail withdraw with no balance", async () => {
-      await venusERC4626.setTotalAssets(0);
-      await venusERC4626.setTotalSupply(0);
-      await expect(venusERC4626.connect(user).withdraw(ethers.utils.parseEther("1"), user.address, user.address)).to.be
-        .reverted;
+      await venusERC4626Core.setTotalAssets(0);
+      await venusERC4626Core.setTotalSupply(0);
+      await expect(venusERC4626Core.connect(user).withdraw(ethers.utils.parseEther("1"), user.address, user.address)).to
+        .be.reverted;
     });
 
     it("should fail withdraw zero amount", async () => {
-      await expect(venusERC4626.connect(user).withdraw(0, user.address, user.address))
-        .to.be.revertedWithCustomError(venusERC4626, "ERC4626__ZeroAmount")
+      await expect(venusERC4626Core.connect(user).withdraw(0, user.address, user.address))
+        .to.be.revertedWithCustomError(venusERC4626Core, "ERC4626__ZeroAmount")
         .withArgs("withdraw");
     });
   });
@@ -309,18 +299,18 @@ describe("VenusERC4626", () => {
       vToken.balanceOf.returnsAtCall(1, depositAmount);
       vToken.balanceOf.returnsAtCall(3, ethers.utils.parseUnits("110", 18));
 
-      await venusERC4626.setMaxDeposit(ethers.utils.parseEther("50"));
-      await venusERC4626.setMaxRedeem(ethers.utils.parseEther("50"));
-      await venusERC4626.setTotalSupply(ethers.utils.parseUnits("100", 18)); // sets total supply
-      await venusERC4626.setTotalAssets(ethers.utils.parseUnits("100", 18)); // sets total assets
-      await venusERC4626.connect(user).deposit(depositAmount, user.address);
-      await venusERC4626.setTotalAssets(ethers.utils.parseUnits("110", 18)); // sets total assets
+      await venusERC4626Core.setMaxDeposit(ethers.utils.parseEther("50"));
+      await venusERC4626Core.setMaxRedeem(ethers.utils.parseEther("50"));
+      await venusERC4626Core.setTotalSupply(ethers.utils.parseUnits("100", 18)); // sets total supply
+      await venusERC4626Core.setTotalAssets(ethers.utils.parseUnits("100", 18)); // sets total assets
+      await venusERC4626Core.connect(user).deposit(depositAmount, user.address);
+      await venusERC4626Core.setTotalAssets(ethers.utils.parseUnits("110", 18)); // sets total assets
 
-      expectedRedeemAssets = await venusERC4626.previewRedeem(redeemShares);
+      expectedRedeemAssets = await venusERC4626Core.previewRedeem(redeemShares);
     });
 
     it("should redeem shares successfully", async () => {
-      const tx = await venusERC4626.connect(user).redeem(redeemShares, user.address, user.address);
+      const tx = await venusERC4626Core.connect(user).redeem(redeemShares, user.address, user.address);
 
       const receipt = await tx.wait();
       const event = receipt.events?.find(e => e.event === "Withdraw");
@@ -335,23 +325,22 @@ describe("VenusERC4626", () => {
     });
 
     it("should return correct assets amount", async () => {
-      const returnedAssets = await venusERC4626
+      const returnedAssets = await venusERC4626Core
         .connect(user)
         .callStatic.redeem(redeemShares, user.address, user.address);
-
       expect(returnedAssets).to.be.gte(expectedRedeemAssets);
     });
 
     it("should revert if vToken redeem fails", async () => {
       vToken.redeem.returns(1); // Error code 1
       await expect(
-        venusERC4626.connect(user).redeem(redeemShares, user.address, user.address),
-      ).to.be.revertedWithCustomError(venusERC4626, "VenusERC4626__VenusError");
+        venusERC4626Core.connect(user).redeem(redeemShares, user.address, user.address),
+      ).to.be.revertedWithCustomError(venusERC4626Core, "VenusERC4626__VenusError");
     });
 
     it("should fail redeem zero shares", async () => {
-      await expect(venusERC4626.connect(user).redeem(0, user.address, user.address))
-        .to.be.revertedWithCustomError(venusERC4626, "ERC4626__ZeroAmount")
+      await expect(venusERC4626Core.connect(user).redeem(0, user.address, user.address))
+        .to.be.revertedWithCustomError(venusERC4626Core, "ERC4626__ZeroAmount")
         .withArgs("redeem");
     });
   });
@@ -359,48 +348,57 @@ describe("VenusERC4626", () => {
   describe("Reward Distribution", () => {
     const rewardAmount = ethers.utils.parseEther("10");
 
-    beforeEach(async () => {
-      comptroller.getRewardDistributors.returns([rewardDistributor.address]);
-      rewardDistributor.rewardToken.returns(xvs.address);
-      xvs.balanceOf.whenCalledWith(venusERC4626.address).returns(rewardAmount);
-    });
-
     describe("When rewardRecipient is EOA", () => {
-      it("should revert the transaction", async () => {
+      it("should claim rewards and transfer to recipient", async () => {
+        xvs.balanceOf.whenCalledWith(venusERC4626Core.address).returns(rewardAmount);
         xvs.transfer.returns(true);
 
-        await expect(venusERC4626.connect(user).claimRewards()).to.be.reverted;
+        await expect(venusERC4626Core.claimRewards())
+          .to.emit(venusERC4626Core, "ClaimRewards")
+          .withArgs(rewardAmount, xvs.address);
+
+        expect(comptroller.claimVenus).to.have.been.calledWith(venusERC4626Core.address);
+
+        expect(xvs.transfer).to.have.been.calledWith(rewardRecipient, rewardAmount);
+        expect(rewardRecipientPSR.updateAssetsState).to.not.have.been.called;
       });
     });
 
     describe("When rewardRecipient is ProtocolShareReserve", () => {
+      let venusERC4626WithPSR: MockVenusERC4626Core;
+
       beforeEach(async () => {
-        // Redeploy with PSR as rewardRecipient
-        const VenusERC4626Factory = await ethers.getContractFactory("MockVenusERC4626");
-        venusERC4626 = await upgrades.deployProxy(VenusERC4626Factory, [vToken.address], {
+        // Deploy new instance with PSR as reward recipient
+        const VenusERC4626Factory = await ethers.getContractFactory("MockVenusERC4626Core");
+        venusERC4626WithPSR = await upgrades.deployProxy(VenusERC4626Factory, [vToken.address], {
           initializer: "initialize",
+          constructorArgs: [xvs.address],
         });
-        await venusERC4626.initialize2(
+
+        await venusERC4626WithPSR.initialize2(
           accessControlManager.address,
           rewardRecipientPSR.address,
-          100,
           vaultOwner.address,
         );
-        comptroller.getRewardDistributors.returns([rewardDistributor.address]);
-        rewardDistributor.rewardToken.returns(xvs.address);
-        xvs.balanceOf.whenCalledWith(venusERC4626.address).returns(rewardAmount);
+
+        xvs.balanceOf.whenCalledWith(venusERC4626WithPSR.address).returns(rewardAmount);
+        xvs.transfer.returns(true);
       });
 
       it("should claim rewards and update PSR state", async () => {
-        xvs.transfer.returns(true);
-
-        await expect(venusERC4626.connect(user).claimRewards())
-          .to.emit(venusERC4626, "ClaimRewards")
+        await expect(venusERC4626WithPSR.claimRewards())
+          .to.emit(venusERC4626WithPSR, "ClaimRewards")
           .withArgs(rewardAmount, xvs.address);
 
-        expect(rewardDistributor.claimRewardToken).to.have.been.calledWith(venusERC4626.address, [vToken.address]);
+        expect(comptroller.claimVenus).to.have.been.calledWith(venusERC4626WithPSR.address);
+        expect(xvs.transfer).to.have.been.calledWith(rewardRecipientPSR.address, rewardAmount);
 
-        expect(rewardRecipientPSR.updateAssetsState).to.have.been.calledWith(comptroller.address, xvs.address, 2);
+        // Verify PSR state update
+        expect(rewardRecipientPSR.updateAssetsState).to.have.been.calledWith(
+          comptroller.address,
+          xvs.address,
+          2, // ERC4626_WRAPPER_REWARDS
+        );
       });
     });
   });

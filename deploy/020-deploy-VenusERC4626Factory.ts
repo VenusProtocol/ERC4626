@@ -16,8 +16,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     preconfiguredAddresses.AccessControlManager || "AccessControlManager",
   );
   const poolRegistryAddress = await toAddress(preconfiguredAddresses.PoolRegistry || "PoolRegistry");
+  const coreComptroller = await toAddress(preconfiguredAddresses.CoreComptroller || "CoreComptroller");
   const proxyOwnerAddress = await toAddress(preconfiguredAddresses.NormalTimelock || "account:deployer");
   const rewardRecipientAddress = await toAddress(preconfiguredAddresses.RewardRecipient || "account:deployer");
+  const xvsAddress = await toAddress(preconfiguredAddresses.XVS || "XVS");
+  const vBNB = await toAddress(preconfiguredAddresses.VBNB || "VBNB");
 
   // Fetch the zk-compatible ProxyAdmin artifact
   const defaultProxyAdmin = await artifacts.readArtifact(
@@ -25,10 +28,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   // ERC4626 Beacon
-  const venusERC4626Implementation: DeployResult = await deploy("VenusERC4626Implementation", {
-    contract: "VenusERC4626",
+  const IsolatedImplementation: DeployResult = await deploy("IsolatedImplementation", {
+    contract: "VenusERC4626Isolated",
     from: deployer,
     args: [],
+    log: true,
+    autoMine: true,
+    skipIfAlreadyDeployed: true,
+  });
+
+  const CoreImplementation: DeployResult = await deploy("CoreImplementation", {
+    contract: "VenusERC4626Core",
+    from: deployer,
+    args: [xvsAddress],
     log: true,
     autoMine: true,
     skipIfAlreadyDeployed: true,
@@ -46,9 +58,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         methodName: "initialize",
         args: [
           accessControlManagerAddress,
+          IsolatedImplementation.address,
+          CoreImplementation.address,
           poolRegistryAddress,
           rewardRecipientAddress,
-          venusERC4626Implementation.address,
           loopsLimit,
         ],
       },
@@ -58,6 +71,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       },
       upgradeIndex: 0,
     },
+    args: [coreComptroller, vBNB],
     autoMine: true,
     log: true,
     skipIfAlreadyDeployed: true,
