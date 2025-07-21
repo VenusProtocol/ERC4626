@@ -8,6 +8,7 @@ import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC2
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import { MathUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
+import { MaxLoopsLimitHelper } from "@venusprotocol/isolated-pools/contracts/MaxLoopsLimitHelper.sol";
 import { AccessControlledV8 } from "@venusprotocol/governance-contracts/contracts/Governance/AccessControlledV8.sol";
 
 import { IComptroller, Action } from "../Interfaces/IComptroller.sol";
@@ -17,7 +18,12 @@ uint256 constant EXP_SCALE = 1e18;
 
 /// @title VenusERC4626
 /// @notice Abstract ERC4626 wrapper for Venus vTokens, enabling standard ERC4626 vault interactions with Venus Protocol.
-abstract contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, ReentrancyGuardUpgradeable {
+abstract contract VenusERC4626 is
+    ERC4626Upgradeable,
+    AccessControlledV8,
+    MaxLoopsLimitHelper,
+    ReentrancyGuardUpgradeable
+{
     using MathUpgradeable for uint256;
     using SafeERC20Upgradeable for ERC20Upgradeable;
 

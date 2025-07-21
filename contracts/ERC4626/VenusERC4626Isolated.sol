@@ -7,12 +7,11 @@ import { VToken } from "@venusprotocol/isolated-pools/contracts/VToken.sol";
 import { IERC20Upgradeable, SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 import { RewardsDistributor } from "@venusprotocol/isolated-pools/contracts/Rewards/RewardsDistributor.sol";
-import { MaxLoopsLimitHelper } from "@venusprotocol/isolated-pools/contracts/MaxLoopsLimitHelper.sol";
 import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
 
 /// @title VenusERC4626Isolated
 /// @notice ERC4626 wrapper for Venus Isolated Pool vTokens
-contract VenusERC4626Isolated is VenusERC4626, MaxLoopsLimitHelper {
+contract VenusERC4626Isolated is VenusERC4626 {
     /// @notice The maximum number of iterations allowed in certain loop operations.
     /// @dev This constant is used to prevent excessive gas consumption by limiting the number of loop iterations.
     uint256 public constant LOOPS_LIMIT = 10;
