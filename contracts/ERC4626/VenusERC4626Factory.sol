@@ -211,6 +211,9 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     /// @param vToken Address of the vToken to check
     /// @return True if the vToken is a core pool vToken, false otherwise
     function _isCoreVToken(address vToken) internal view returns (bool) {
+        if (CORE_COMPTROLLER == IComptroller(address(0))) {
+            return false;
+        }
         (bool listed, ) = CORE_COMPTROLLER.markets(vToken);
         return listed;
     }
