@@ -9,6 +9,8 @@ interface VTokenInterface {
 
     function redeemUnderlying(uint256 redeemAmount) external returns (uint256);
 
+    function accrueInterest() external returns (uint256);
+
     function balanceOf(address owner) external view returns (uint256);
 
     function comptroller() external view returns (IComptroller);
@@ -20,8 +22,6 @@ interface VTokenInterface {
     function getCash() external view returns (uint256);
 
     function exchangeRateStored() external view returns (uint256);
-
-    function accrueInterest() external view returns (uint256);
 
     function totalReserves() external view returns (uint256);
 }
