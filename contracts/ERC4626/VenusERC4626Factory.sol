@@ -101,7 +101,7 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
         address poolRegistry_,
         address rewardRecipient_,
         uint256 loopsLimitNumber_
-    ) external initializer {
+    ) external reinitializer(2) {
         ensureNonzeroAddress(isolatedImplementation_);
         ensureNonzeroAddress(coreImplementation_);
         ensureNonzeroAddress(poolRegistry_);
@@ -159,9 +159,9 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
         if (address(createdVaults[vToken]) != address(0)) revert VenusERC4626Factory__ERC4626AlreadyExists();
 
         bool isCore = _isCoreVToken(vToken);
-        isCoreVault[vToken] = isCore;
 
         if (isCore) {
+            isCoreVault[vToken] = isCore;
             vault = _deployCoreVault(vToken);
         } else {
             address underlying = VTokenInterface(vToken).underlying();
