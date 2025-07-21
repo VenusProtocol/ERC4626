@@ -146,8 +146,8 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     /// @notice Creates an ERC4626 vault for the given vToken
     /// @param vToken Address of the vToken
     /// @return vault The deployed ERC4626 vault
-    /// @custom:error VaultAlreadyExists if a vault already exists for the vToken
-    /// @custom:error InvalidVToken if the vToken is invalid or unlisted
+    /// @custom:error ERC4626AlreadyExists if a vault already exists for the vToken
+    /// @custom:error InvalidVToken if the vToken is invalid
     /// @custom:event CreateERC4626 is emitted when the ERC4626 wrapper is created
     function createERC4626(address vToken) external returns (ERC4626Upgradeable vault) {
         ensureNonzeroAddress(vToken);

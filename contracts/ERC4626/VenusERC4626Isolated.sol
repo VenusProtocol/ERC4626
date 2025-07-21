@@ -15,7 +15,7 @@ import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
 contract VenusERC4626Isolated is VenusERC4626, MaxLoopsLimitHelper {
     /// @notice The maximum number of iterations allowed in certain loop operations.
     /// @dev This constant is used to prevent excessive gas consumption by limiting the number of loop iterations.
-    uint256 public constant LOOPS_LIMIT = 100;
+    uint256 public constant LOOPS_LIMIT = 10;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
