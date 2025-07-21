@@ -349,18 +349,11 @@ describe("VenusERC4626Core", () => {
     const rewardAmount = ethers.utils.parseEther("10");
 
     describe("When rewardRecipient is EOA", () => {
-      it("should claim rewards and transfer to recipient", async () => {
+      it("should revert the transaction", async () => {
         xvs.balanceOf.whenCalledWith(venusERC4626Core.address).returns(rewardAmount);
         xvs.transfer.returns(true);
 
-        await expect(venusERC4626Core.claimRewards())
-          .to.emit(venusERC4626Core, "ClaimRewards")
-          .withArgs(rewardAmount, xvs.address);
-
-        expect(comptroller.claimVenus).to.have.been.calledWith(venusERC4626Core.address);
-
-        expect(xvs.transfer).to.have.been.calledWith(rewardRecipient, rewardAmount);
-        expect(rewardRecipientPSR.updateAssetsState).to.not.have.been.called;
+        await expect(venusERC4626Core.claimRewards()).to.be.reverted;
       });
     });
 
@@ -390,7 +383,12 @@ describe("VenusERC4626Core", () => {
           .to.emit(venusERC4626WithPSR, "ClaimRewards")
           .withArgs(rewardAmount, xvs.address);
 
-        expect(comptroller.claimVenus).to.have.been.calledWith(venusERC4626WithPSR.address);
+        expect(comptroller.claimVenus).to.have.been.calledWith(
+          [venusERC4626WithPSR.address],
+          [vToken.address],
+          false,
+          true,
+        );
         expect(xvs.transfer).to.have.been.calledWith(rewardRecipientPSR.address, rewardAmount);
 
         // Verify PSR state update

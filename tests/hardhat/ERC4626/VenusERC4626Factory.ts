@@ -86,7 +86,7 @@ describe("VenusERC4626Factory", () => {
         venusERC4626CoreImpl.address,
         poolRegistry.address,
         rewardRecipient,
-        100,
+        10,
       ],
       {
         initializer: "initialize",

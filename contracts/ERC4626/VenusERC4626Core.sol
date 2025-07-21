@@ -5,6 +5,7 @@ import { VenusERC4626 } from "./Base/VenusERC4626.sol";
 import { IERC20Upgradeable, SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
 import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
+import { VTokenInterface } from "./Interfaces/VTokenInterface.sol";
 
 /// @title VenusERC4626Core
 /// @notice ERC4626 wrapper for Venus Core Pool vTokens
@@ -30,7 +31,11 @@ contract VenusERC4626Core is VenusERC4626 {
 
     /// @inheritdoc VenusERC4626
     function claimRewards() external override {
-        comptroller.claimVenus(address(this));
+        address[] memory holders = new address[](1);
+        holders[0] = address(this);
+        VTokenInterface[] memory vTokens = new VTokenInterface[](1);
+        vTokens[0] = vToken;
+        comptroller.claimVenus(holders, vTokens, false, true);
 
         IERC20Upgradeable xvs = IERC20Upgradeable(XVS_ADDRESS);
         uint256 rewardAmount = xvs.balanceOf(address(this));
@@ -38,11 +43,13 @@ contract VenusERC4626Core is VenusERC4626 {
         if (rewardAmount > 0) {
             SafeERC20Upgradeable.safeTransfer(xvs, rewardRecipient, rewardAmount);
 
-            bytes memory data = abi.encodeCall(
-                IProtocolShareReserve.updateAssetsState,
-                (address(comptroller), XVS_ADDRESS, IProtocolShareReserve.IncomeType.ERC4626_WRAPPER_REWARDS)
-            );
-            rewardRecipient.call(data);
+            try
+                IProtocolShareReserve(rewardRecipient).updateAssetsState(
+                    address(comptroller),
+                    XVS_ADDRESS,
+                    IProtocolShareReserve.IncomeType.ERC4626_WRAPPER_REWARDS
+                )
+            {} catch {}
 
             emit ClaimRewards(rewardAmount, XVS_ADDRESS);
         }
