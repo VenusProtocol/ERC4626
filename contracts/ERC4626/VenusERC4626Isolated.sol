@@ -17,11 +17,18 @@ contract VenusERC4626Isolated is VenusERC4626, MaxLoopsLimitHelper {
     /// @dev This constant is used to prevent excessive gas consumption by limiting the number of loop iterations.
     uint256 public constant LOOPS_LIMIT = 100;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        // Note that the contract is upgradeable. Use initialize() or reinitializers
+        // to set the state variables.
+        _disableInitializers();
+    }
+
     /// @notice Initializes the VenusERC4626Isolated contract
     /// @dev `initialize2` should be invoked to complete the configuration of the vault
     /// @param vToken_ The address of the vToken to be wrapped
-    function initialize(address vToken_) public virtual override initializer {
-        super.initialize(vToken_);
+    function initialize(address vToken_) public virtual initializer {
+        __VenusERC4626_init(vToken_);
     }
 
     /// @notice Sets the maximum loops limit

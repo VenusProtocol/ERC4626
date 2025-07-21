@@ -76,28 +76,6 @@ abstract contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, Reentr
     /// @param operation The name of the operation that failed (e.g., "deposit", "withdraw", "mint", "redeem").
     error ERC4626__ZeroAmount(string operation);
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        // Note that the contract is upgradeable. Use initialize() or reinitializers
-        // to set the state variables.
-        _disableInitializers();
-    }
-
-    /// @notice Initializes the VenusERC4626 vault, only with the VToken address associated to the vault
-    /// @dev `initialize2` should be invoked to complete the configuration of the vault
-    /// @param vToken_ The VToken associated with the vault, representing the yield-bearing asset.
-    function initialize(address vToken_) public virtual initializer {
-        ensureNonzeroAddress(vToken_);
-
-        vToken = VTokenInterface(vToken_);
-        comptroller = IComptroller(address(vToken.comptroller()));
-        ERC20Upgradeable asset = ERC20Upgradeable(vToken.underlying());
-
-        __ERC20_init(_generateVaultName(asset), _generateVaultSymbol(asset));
-        __ERC4626_init(asset);
-        __ReentrancyGuard_init();
-    }
-
     /// @notice Sets a new reward recipient address
     /// @param newRecipient The address of the new reward recipient
     /// @custom:access Controlled by ACM
@@ -305,6 +283,21 @@ abstract contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, Reentr
             uint256 shareBalance = balanceOf(receiver);
             return availableCashInShares < shareBalance ? availableCashInShares : shareBalance;
         }
+    }
+
+    /// @notice Initializes the VenusERC4626 vault, only with the VToken address associated to the vault
+    /// @dev `initialize2` should be invoked to complete the configuration of the vault
+    /// @param vToken_ The VToken associated with the vault, representing the yield-bearing asset.
+    function __VenusERC4626_init(address vToken_) internal onlyInitializing {
+        ensureNonzeroAddress(vToken_);
+
+        vToken = VTokenInterface(vToken_);
+        comptroller = IComptroller(address(vToken.comptroller()));
+        ERC20Upgradeable asset = ERC20Upgradeable(vToken.underlying());
+
+        __ERC20_init(_generateVaultName(asset), _generateVaultSymbol(asset));
+        __ERC4626_init(asset);
+        __ReentrancyGuard_init();
     }
 
     /// @notice Redeems the amount of vTokens equivalent to the provided shares.
