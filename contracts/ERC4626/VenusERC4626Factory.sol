@@ -47,9 +47,11 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     mapping(address vToken => ERC4626Upgradeable vault) public createdVaults;
 
     /// @notice Beacon for core vaults
+    /// @dev Will be address(0) for non-BSC chains as core functionality is only required on BSC
     UpgradeableBeacon public coreBeacon;
 
     /// @notice Mapping indicating whether a vault belongs to core pool
+    /// @dev Will be false for all vaults on non-BSC chains as core functionality is only required on BSC
     mapping(address => bool) public isCoreVault;
 
     /// @notice Emitted when a new vault is created

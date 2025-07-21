@@ -13,9 +13,12 @@ import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
 /// @title VenusERC4626Isolated
 /// @notice ERC4626 wrapper for Venus Isolated Pool vTokens
 contract VenusERC4626Isolated is VenusERC4626, MaxLoopsLimitHelper {
+    /// @notice The maximum number of iterations allowed in certain loop operations.
+    /// @dev This constant is used to prevent excessive gas consumption by limiting the number of loop iterations.
     uint256 public constant LOOPS_LIMIT = 100;
 
     /// @notice Initializes the VenusERC4626Isolated contract
+    /// @dev `initialize2` should be invoked to complete the configuration of the vault
     /// @param vToken_ The address of the vToken to be wrapped
     function initialize(address vToken_) public virtual override initializer {
         super.initialize(vToken_);

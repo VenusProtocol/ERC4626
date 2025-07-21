@@ -391,7 +391,7 @@ abstract contract VenusERC4626 is ERC4626Upgradeable, AccessControlledV8, Reentr
     /// underlying assets equivalent to the new VTokens minted
     /// @custom:error ERC4626__ZeroAmount is thrown when the minted VTokens are zero
     /// @inheritdoc ERC4626Upgradeable
-    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
+    function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal virtual override {
         // 1. Track pre-transfer balances
         uint256 assetBalanceBefore = IERC20Upgradeable(asset()).balanceOf(address(this));
         uint256 vTokenBalanceBefore = vToken.balanceOf(address(this));

@@ -22,6 +22,7 @@ contract VenusERC4626Core is VenusERC4626 {
     }
 
     /// @notice Initializes the VenusERC4626Core contract
+    /// @dev `initialize2` should be invoked to complete the configuration of the vault
     /// @param vToken_ The address of the vToken to be wrapped
     function initialize(address vToken_) public virtual override initializer {
         super.initialize(vToken_);
