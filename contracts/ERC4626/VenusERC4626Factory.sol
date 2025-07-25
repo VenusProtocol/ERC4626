@@ -90,20 +90,17 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     /// @notice Initializes the factory contract
     /// @param accessControlManager_ Access control manager address
     /// @param isolatedImplementation_ Implementation address for isolated vaults
-    /// @param coreImplementation_ Implementation address for core vaults
     /// @param poolRegistry_ Pool registry address
     /// @param rewardRecipient_ Initial reward recipient address
     /// @param loopsLimitNumber_ Maximum number of loops
     function initialize(
         address accessControlManager_,
         address isolatedImplementation_,
-        address coreImplementation_,
         address poolRegistry_,
         address rewardRecipient_,
         uint256 loopsLimitNumber_
-    ) external reinitializer(2) {
+    ) external initializer {
         ensureNonzeroAddress(isolatedImplementation_);
-        ensureNonzeroAddress(coreImplementation_);
         ensureNonzeroAddress(poolRegistry_);
         ensureNonzeroAddress(rewardRecipient_);
 
@@ -111,14 +108,25 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
         _setMaxLoopsLimit(loopsLimitNumber_);
 
         isolatedBeacon = new UpgradeableBeacon(isolatedImplementation_);
-        coreBeacon = new UpgradeableBeacon(coreImplementation_);
 
         poolRegistry = PoolRegistryInterface(poolRegistry_);
         rewardRecipient = rewardRecipient_;
 
         // The owner of the beacon will initially be the owner of the factory
         isolatedBeacon.transferOwnership(owner());
-        coreBeacon.transferOwnership(owner());
+    }
+
+    /// @notice Initializes the core beacon attribute
+    /// @dev It has to be called after `initialize`
+    /// @param coreImplementation_ Implementation address for core vaults. It must be zero if the chain does
+    /// not have a "legacy" Core pool
+    function initialize2(address coreImplementation_) external reinitializer(2) {
+        if (coreImplementation_ != address(0)) {
+            coreBeacon = new UpgradeableBeacon(coreImplementation_);
+
+            // The owner of the beacon will initially be the owner of the factory
+            coreBeacon.transferOwnership(owner());
+        }
     }
 
     /// @notice Sets a new reward recipient address

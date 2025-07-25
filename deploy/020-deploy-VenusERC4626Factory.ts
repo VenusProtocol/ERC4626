@@ -59,7 +59,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
         args: [
           accessControlManagerAddress,
           IsolatedImplementation.address,
-          CoreImplementation.address,
           poolRegistryAddress,
           rewardRecipientAddress,
           loopsLimit,
@@ -86,8 +85,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     (await erc4626FactoryProxy.owner()) === deployer &&
     (await erc4626FactoryProxy.pendingOwner()) === ethers.constants.AddressZero
   ) {
+    console.log(
+      `Setting the VenusERC4626 implementation for the VTokens on the Core pool, on the erc4626FactoryProxy to ${CoreImplementation.address}`,
+    );
+    let tx = await erc4626FactoryProxy.initialize2(CoreImplementation.address);
+    await tx.wait();
+
     console.log(`Transferring ownership of erc4626FactoryProxy to ${targetOwner}`);
-    const tx = await erc4626FactoryProxy.transferOwnership(targetOwner);
+    tx = await erc4626FactoryProxy.transferOwnership(targetOwner);
     await tx.wait();
   }
 };

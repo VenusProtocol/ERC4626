@@ -80,19 +80,14 @@ describe("VenusERC4626Factory", () => {
 
     factory = await upgrades.deployProxy(
       Factory,
-      [
-        accessControl.address,
-        venusERC4626IsolatedImpl.address,
-        venusERC4626CoreImpl.address,
-        poolRegistry.address,
-        rewardRecipient,
-        10,
-      ],
+      [accessControl.address, venusERC4626IsolatedImpl.address, poolRegistry.address, rewardRecipient, 10],
       {
         initializer: "initialize",
         constructorArgs: [coreComptroller.address, vBNB.address],
       },
     );
+
+    await factory.initialize2(venusERC4626CoreImpl.address);
 
     isolatedBeacon = await ethers.getContractAt("UpgradeableBeacon", await factory.isolatedBeacon());
     coreBeacon = await ethers.getContractAt("UpgradeableBeacon", await factory.coreBeacon());
