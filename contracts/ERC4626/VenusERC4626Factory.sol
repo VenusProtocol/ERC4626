@@ -88,6 +88,7 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
     }
 
     /// @notice Initializes the factory contract
+    /// @dev `initialize2` should be invoked to complete the configuration of the factory
     /// @param accessControlManager_ Access control manager address
     /// @param isolatedImplementation_ Implementation address for isolated vaults
     /// @param poolRegistry_ Pool registry address
