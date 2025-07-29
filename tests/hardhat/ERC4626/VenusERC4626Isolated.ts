@@ -57,7 +57,7 @@ describe("VenusERC4626Isolated", () => {
     venusERC4626Isolated = await upgrades.deployProxy(VenusERC4626Factory, [vToken.address], {
       initializer: "initialize",
     });
-    await venusERC4626Isolated.initialize2(accessControlManager.address, rewardRecipient, vaultOwner.address);
+    await venusERC4626Isolated.initialize2(accessControlManager.address, rewardRecipient, vaultOwner.address, 100);
   });
 
   describe("Initialization", () => {
@@ -386,6 +386,7 @@ describe("VenusERC4626Isolated", () => {
           accessControlManager.address,
           rewardRecipientPSR.address,
           vaultOwner.address,
+          100,
         );
         comptroller.getRewardDistributors.returns([rewardDistributor.address]);
         rewardDistributor.rewardToken.returns(xvs.address);

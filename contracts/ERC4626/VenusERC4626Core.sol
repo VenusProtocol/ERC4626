@@ -54,4 +54,16 @@ contract VenusERC4626Core is VenusERC4626 {
             emit ClaimRewards(rewardAmount, XVS_ADDRESS);
         }
     }
+
+    /// @notice second function to invoke to complete the initialization
+    /// @param accessControlManager_ The address of the access control manager
+    /// @param rewardRecipient_ The address that will receive rewards
+    /// @param vaultOwner_ The owner of the vault
+    function initialize2(
+        address accessControlManager_,
+        address rewardRecipient_,
+        address vaultOwner_
+    ) public virtual reinitializer(2) {
+        __VenusERC4626_init2(accessControlManager_, rewardRecipient_, vaultOwner_);
+    }
 }

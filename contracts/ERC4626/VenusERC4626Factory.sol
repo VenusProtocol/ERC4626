@@ -240,7 +240,7 @@ contract VenusERC4626Factory is AccessControlledV8, MaxLoopsLimitHelper {
                 )
             )
         );
-        vault.initialize2(address(_accessControlManager), rewardRecipient, owner());
+        vault.initialize2(address(_accessControlManager), rewardRecipient, owner(), maxLoopsLimit);
         return ERC4626Upgradeable(address(vault));
     }
 
