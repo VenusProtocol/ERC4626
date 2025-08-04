@@ -5,7 +5,6 @@ import { VenusERC4626 } from "./Base/VenusERC4626.sol";
 import { IComptroller } from "./Interfaces/IComptroller.sol";
 import { VToken } from "@venusprotocol/isolated-pools/contracts/VToken.sol";
 import { IERC20Upgradeable, SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
 import { RewardsDistributor } from "@venusprotocol/isolated-pools/contracts/Rewards/RewardsDistributor.sol";
 import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
 
@@ -76,16 +75,14 @@ contract VenusERC4626Isolated is VenusERC4626 {
     /// @param accessControlManager_ Address of the ACM contract
     /// @param rewardRecipient_ Address that will receive rewards
     /// @param vaultOwner_ Owner of the vault
+    /// @param maxLoopsLimit_ Maximum number of loops allowed in certain operations
     function initialize2(
         address accessControlManager_,
         address rewardRecipient_,
-        address vaultOwner_
-    ) public override reinitializer(2) {
-        ensureNonzeroAddress(vaultOwner_);
-
-        __AccessControlled_init(accessControlManager_);
-        _setMaxLoopsLimit(LOOPS_LIMIT);
-        _setRewardRecipient(rewardRecipient_);
-        _transferOwnership(vaultOwner_);
+        address vaultOwner_,
+        uint256 maxLoopsLimit_
+    ) public virtual reinitializer(2) {
+        __VenusERC4626_init2(accessControlManager_, rewardRecipient_, vaultOwner_);
+        _setMaxLoopsLimit(maxLoopsLimit_);
     }
 }
