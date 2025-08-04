@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
-import { VenusERC4626 } from "../../ERC4626/VenusERC4626.sol";
+import { VenusERC4626Core } from "../../ERC4626/VenusERC4626Core.sol";
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { ERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-contract MockVenusERC4626 is VenusERC4626 {
+contract MockVenusERC4626Core is VenusERC4626Core {
     mapping(address => uint256) private _balances;
     uint256 private mockTotalAssets;
     uint256 private mockMaxDeposit;
@@ -13,6 +13,11 @@ contract MockVenusERC4626 is VenusERC4626 {
     uint256 private mockMaxMint;
     uint256 private mockMaxRedeem;
     uint256 private mockTotalSupply;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(address xvsAddress_) VenusERC4626Core(xvsAddress_) {
+        _disableInitializers();
+    }
 
     // Mock functions for testing
     function setTotalAssets(uint256 _totalAssets) external {
