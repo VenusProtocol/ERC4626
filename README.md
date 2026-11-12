@@ -32,7 +32,7 @@ Reference: https://eips.ethereum.org/EIPS/eip-4626
 
 ## Prerequisites
 
-- NodeJS - 12.x
+- Node.js >= 20
 - Solc - v0.8.25 (https://github.com/ethereum/solidity/releases/tag/v0.8.25)
 
 ## Installing
@@ -155,3 +155,14 @@ https://github.com/compound-finance/compound-protocol/tree/a3214f67b73310d547e00
 - Discord : https://discord.com/invite/pTQ9EBHYtF
 - Github: https://github.com/VenusProtocol
 - Youtube: https://www.youtube.com/@venusprotocolofficial
+
+## Release publishing
+
+The `cd.yaml` workflow publishes `@venusprotocol/erc-4626` using npm trusted publishing. Before releasing, configure the package's npm Trusted Publisher with:
+
+- GitHub organization: `VenusProtocol`
+- Repository: `ERC4626`
+- Workflow filename: `cd.yaml`
+- Environment: `release`
+
+The npm-side configuration must match these values. Pull-request CI does not verify publishing authorization. Release automation uses Node.js 22.14.0 for semantic-release.
