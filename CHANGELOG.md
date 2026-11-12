@@ -1,3 +1,5 @@
+## [1.0.1-dev.1](https://github.com/VenusProtocol/ERC4626/compare/v1.0.0...v1.0.1-dev.1) (2026-11-12)
+
 ## 1.0.0 (2025-06-24)
 
 
