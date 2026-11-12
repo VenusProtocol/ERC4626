@@ -32,7 +32,7 @@ Reference: https://eips.ethereum.org/EIPS/eip-4626
 
 ## Prerequisites
 
-- NodeJS - 12.x
+- Node.js >= 20
 - Solc - v0.8.25 (https://github.com/ethereum/solidity/releases/tag/v0.8.25)
 
 ## Installing
