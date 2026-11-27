@@ -3,6 +3,7 @@ pragma solidity 0.8.25;
 
 import { Action } from "@venusprotocol/isolated-pools/contracts/ComptrollerInterface.sol";
 import { RewardsDistributor } from "@venusprotocol/isolated-pools/contracts/Rewards/RewardsDistributor.sol";
+import { VTokenInterface } from "./VTokenInterface.sol";
 
 /**
  * @title IComptroller
@@ -10,9 +11,20 @@ import { RewardsDistributor } from "@venusprotocol/isolated-pools/contracts/Rewa
  * @notice Combined interface for the `Comptroller` contract, including both core and view functions.
  */
 interface IComptroller {
+    function claimVenus(
+        address[] calldata holders,
+        VTokenInterface[] calldata vTokens,
+        bool borrowers,
+        bool suppliers
+    ) external;
+
     function actionPaused(address market, Action action) external view returns (bool);
 
     function getRewardDistributors() external view returns (RewardsDistributor[] memory);
 
     function supplyCaps(address) external view returns (uint256);
+
+    function markets(address) external view returns (bool, uint256);
+
+    function getXVSAddress() external view returns (address);
 }

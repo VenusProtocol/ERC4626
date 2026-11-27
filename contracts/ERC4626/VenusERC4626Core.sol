@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: BSD-3-Clause
+pragma solidity 0.8.25;
+
+import { VenusERC4626 } from "./Base/VenusERC4626.sol";
+import { IERC20Upgradeable, SafeERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import { IProtocolShareReserve } from "./Interfaces/IProtocolShareReserve.sol";
+import { ensureNonzeroAddress } from "@venusprotocol/solidity-utilities/contracts/validators.sol";
+import { VTokenInterface } from "./Interfaces/VTokenInterface.sol";
+
+/// @title VenusERC4626Core
+/// @notice ERC4626 wrapper for Venus Core Pool vTokens
+contract VenusERC4626Core is VenusERC4626 {
+    /// @notice Immutable XVS token address
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    address public immutable XVS_ADDRESS;
+
+    /// @notice Constructor
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(address xvsAddress_) {
+        ensureNonzeroAddress(xvsAddress_);
+        XVS_ADDRESS = xvsAddress_;
+        _disableInitializers();
+    }
+
+    /// @notice Initializes the VenusERC4626Core contract
+    /// @dev `initialize2` should be invoked to complete the configuration of the vault
+    /// @param vToken_ The address of the vToken to be wrapped
+    function initialize(address vToken_) public virtual initializer {
+        __VenusERC4626_init(vToken_);
+    }
+
+    /// @inheritdoc VenusERC4626
+    function claimRewards() external override {
+        address[] memory holders = new address[](1);
+        holders[0] = address(this);
+        VTokenInterface[] memory vTokens = new VTokenInterface[](1);
+        vTokens[0] = vToken;
+        comptroller.claimVenus(holders, vTokens, false, true);
+
+        IERC20Upgradeable xvs = IERC20Upgradeable(XVS_ADDRESS);
+        uint256 rewardAmount = xvs.balanceOf(address(this));
+
+        if (rewardAmount > 0) {
+            SafeERC20Upgradeable.safeTransfer(xvs, rewardRecipient, rewardAmount);
+
+            try
+                IProtocolShareReserve(rewardRecipient).updateAssetsState(
+                    address(comptroller),
+                    XVS_ADDRESS,
+                    IProtocolShareReserve.IncomeType.ERC4626_WRAPPER_REWARDS
+                )
+            {} catch {}
+
+            emit ClaimRewards(rewardAmount, XVS_ADDRESS);
+        }
+    }
+
+    /// @notice second function to invoke to complete the initialization
+    /// @param accessControlManager_ The address of the access control manager
+    /// @param rewardRecipient_ The address that will receive rewards
+    /// @param vaultOwner_ The owner of the vault
+    function initialize2(
+        address accessControlManager_,
+        address rewardRecipient_,
+        address vaultOwner_
+    ) public virtual reinitializer(2) {
+        __VenusERC4626_init2(accessControlManager_, rewardRecipient_, vaultOwner_);
+    }
+}
