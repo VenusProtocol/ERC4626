@@ -1,6 +1,6 @@
 {
   "name": "@venusprotocol/erc-4626",
-  "version": "1.0.1",
+  "version": "0.0.0-semantically-released",
   "description": "",
   "files": [
     "artifacts",
@@ -65,8 +65,6 @@
     "@nomicfoundation/hardhat-network-helpers": "^1.0.4",
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
     "@nomiclabs/hardhat-etherscan": "^3.0.3",
-    "@semantic-release/changelog": "^6.0.1",
-    "@semantic-release/git": "^10.0.1",
     "@trivago/prettier-plugin-sort-imports": "3.4.0",
     "@typechain/ethers-v5": "^7.2.0",
     "@typechain/hardhat": "^2.3.1",
